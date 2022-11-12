@@ -34,10 +34,26 @@ namespace inscryption_multiplayer
                 slot = new CardSlotMultiplayer
                 {
                     index = otherCard.Slot.Index,
-                    isPlayerSlot = otherCard.Slot.IsPlayerSlot
+                    isPlayerSlot = !otherCard.Slot.IsPlayerSlot
                 }
             };
             InscryptionNetworking.Connection.SendJson("CardPlacedByOpponent", cardInfo);
+            yield break;
+        }
+
+        public override bool RespondsToOtherCardDie(PlayableCard card, CardSlot deathSlot, bool fromCombat, PlayableCard killer)
+        {
+            return !fromCombat;
+        }
+
+        public override IEnumerator OnOtherCardDie(PlayableCard card, CardSlot deathSlot, bool fromCombat, PlayableCard killer)
+        {
+            CardSlotMultiplayer cardSlot = new CardSlotMultiplayer
+            {
+                index = deathSlot.Index,
+                isPlayerSlot = !deathSlot.IsPlayerSlot
+            };
+            InscryptionNetworking.Connection.SendJson("CardSacrificedByOpponent", cardSlot);
             yield break;
         }
     }

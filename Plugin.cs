@@ -56,10 +56,6 @@ namespace inscryption_multiplayer
                     Plugin.Log.LogInfo(Singleton<MapNodeManager>.Instance.nodes[i].Data.GetType());
                     if (Singleton<MapNodeManager>.Instance.nodes[i].Data.GetType() == typeof(CardBattleNodeData))
                     {
-                        if (((CardBattleNodeData)Singleton<MapNodeManager>.Instance.nodes[i].Data).blueprint != null)
-                        {
-                            ((CardBattleNodeData)Singleton<MapNodeManager>.Instance.nodes[i].Data).blueprint.turns = new System.Collections.Generic.List<System.Collections.Generic.List<EncounterBlueprintData.CardBlueprint>>();
-                        }
                         ((CardBattleNodeData)Singleton<MapNodeManager>.Instance.nodes[i].Data).specialBattleId = "Multiplayer_Battle_Sequencer";
                     }
                 }

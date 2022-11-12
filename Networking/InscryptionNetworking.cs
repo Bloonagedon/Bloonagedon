@@ -12,6 +12,7 @@ namespace inscryption_multiplayer.Networking
         internal static InscryptionNetworking Connection = new SteamNetworking();
 
         internal abstract bool Connected { get; }
+        internal abstract bool IsHost { get; }
         internal abstract void Host();
 
         internal abstract void SendJson(string message, object serializedClass);
@@ -47,23 +48,7 @@ namespace inscryption_multiplayer.Networking
                     Plugin.Log.LogInfo("started a game!");
                     break;
 
-                //here for testing, shouldn't be here for release or when testing it with another player
-                case "CardPlacedByOpponent":
-                    CardInfoMultiplayer cardInfo = JsonSerializer.Deserialize<CardInfoMultiplayer>(jsonString);
-                    CardSlot slot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardInfo.slot.index && x.IsPlayerSlot != cardInfo.slot.isPlayerSlot);
-                    if (slot.Card != null)
-                    {
-                        slot.Card.ExitBoard(0, new Vector3(0, 0, 0));
-                    }
-
-                    Singleton<BoardManager>.Instance.StartCoroutine(Singleton<BoardManager>.Instance.CreateCardInSlot(
-                        CardLoader.GetCardByName(cardInfo.name),
-                        slot,
-                        0.1f,
-                        false
-                        ));
-                    break;
-
+                    //everything below here is for testing, it shouldn't be here for release or when testing it with another player
             }
 
             //messages here should be received by all users in the lobby except by the one who sended it
@@ -71,24 +56,42 @@ namespace inscryption_multiplayer.Networking
             {
                 switch (message)
                 {
+                    case "OpponentReady":
+                        ((Multiplayer_Battle_Sequencer)Singleton<TurnManager>.Instance.SpecialSequencer).OpponentReady = true;
+                        break;
+
+                    case "InitiateCombat":
+                        Singleton<TurnManager>.Instance.playerInitiatedCombat = true;
+                        break;
+
                     case "OpponentCardPlacePhaseEnded":
                         ((Multiplayer_Battle_Sequencer)Singleton<TurnManager>.Instance.SpecialSequencer).OpponentCardPlacePhase = false;
                         break;
 
                     case "CardPlacedByOpponent":
                         CardInfoMultiplayer cardInfo = JsonSerializer.Deserialize<CardInfoMultiplayer>(jsonString);
-                        CardSlot slot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardInfo.slot.index && x.IsPlayerSlot != cardInfo.slot.isPlayerSlot);
-                        if (slot.Card != null)
+                        CardSlot placedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardInfo.slot.index && x.IsPlayerSlot == cardInfo.slot.isPlayerSlot);
+                        if (placedSlot.Card != null)
                         {
-                            slot.Card.ExitBoard(0, new Vector3(0, 0, 0));
+                            placedSlot.Card.ExitBoard(0, new Vector3(0, 0, 0));
                         }
 
                         Singleton<BoardManager>.Instance.StartCoroutine(Singleton<BoardManager>.Instance.CreateCardInSlot(
                             CardLoader.GetCardByName(cardInfo.name),
-                            slot,
+                            placedSlot,
                             0.1f,
                             false
                             ));
+                        break;
+
+                    case "CardSacrificedByOpponent":
+                        CardSlotMultiplayer cardSlot = JsonSerializer.Deserialize<CardSlotMultiplayer>(jsonString);
+                        CardSlot sacrificedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardSlot.index && x.IsPlayerSlot == cardSlot.isPlayerSlot);
+
+                        if (sacrificedSlot.Card != null)
+                        {
+                            sacrificedSlot.Card.ExitBoard(0, new Vector3(0, 0, 0));
+                        }
                         break;
                 }
             }

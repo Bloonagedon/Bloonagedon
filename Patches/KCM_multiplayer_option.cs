@@ -1,10 +1,11 @@
 ﻿using DiskCardGame;
 using GBC;
 using HarmonyLib;
+using inscryption_multiplayer.Networking;
 using Steamworks;
 using System.Collections.Generic;
-using inscryption_multiplayer.Networking;
 using UnityEngine;
+using SteamNetworking = inscryption_multiplayer.Networking.SteamNetworking;
 
 namespace inscryption_multiplayer.Patches
 {
@@ -22,19 +23,31 @@ namespace inscryption_multiplayer.Patches
             List<GameObject> onEnableRevealedObjects = transitionController.onEnableRevealedObjects;
             List<MainInputInteractable> screenInteractables = transitionController.screenInteractables;
 
-            // Clone the new button
-            AscensionMenuInteractable lobbyButtonController = CreateAscensionButton(menuText);
-
-            // Add to transition
+            AscensionMenuInteractable inviteButtonController = CreateAscensionButton(menuText, "- INVITE A PLAYER -");
+            AscensionMenuInteractable lobbyButtonController = CreateAscensionButton(menuText, "- CREATE LOBBY -");
 
             onEnableRevealedObjects.Insert(onEnableRevealedObjects.IndexOf(menuText.gameObject) + 1, lobbyButtonController.gameObject);
             screenInteractables.Insert(screenInteractables.IndexOf(menuText) + 1, lobbyButtonController);
+
+            onEnableRevealedObjects.Insert(onEnableRevealedObjects.IndexOf(menuText.gameObject) + 2, inviteButtonController.gameObject);
+            screenInteractables.Insert(screenInteractables.IndexOf(menuText) + 1, inviteButtonController);
+
             lobbyButtonController.CursorSelectStarted = delegate (MainInputInteractable interactable)
             {
                 InscryptionNetworking.Connection.Host();
                 Plugin.Log.LogInfo("Started a lobby!");
             };
+
+            inviteButtonController.CursorSelectStarted = delegate (MainInputInteractable interactable)
+            {
+                if (InscryptionNetworking.Connection.Connected)
+                {
+                    SteamFriends.ActivateGameOverlayInviteDialog((CSteamID)SteamNetworking.LobbyID);
+                }
+            };
+
             itemsSpacing.menuItems.Insert(1, lobbyButtonController.transform);
+            itemsSpacing.menuItems.Insert(2, inviteButtonController.transform);
 
             for (int i = 1; i < itemsSpacing.menuItems.Count; i++)
             {
@@ -43,17 +56,17 @@ namespace inscryption_multiplayer.Patches
             }
         }
 
-        public static AscensionMenuInteractable CreateAscensionButton(AscensionMenuInteractable newRunButton)
+        public static AscensionMenuInteractable CreateAscensionButton(AscensionMenuInteractable newRunButton, string text)
         {
-            AscensionMenuInteractable newLobbyButton = GameObject.Instantiate(newRunButton, newRunButton.transform.parent);
-            newLobbyButton.name = "Menu_New_Lobby";
-            newLobbyButton.CursorSelectStarted = delegate
+            AscensionMenuInteractable newButton = GameObject.Instantiate(newRunButton, newRunButton.transform.parent);
+            //newLobbyButton.name = "Menu_New_Lobby";
+            newButton.CursorSelectStarted = delegate
             {
                 newRunButton.CursorSelectStart();
             };
-            newLobbyButton.GetComponentInChildren<PixelText>().SetText("- CREATE LOBBY -");
+            newButton.GetComponentInChildren<PixelText>().SetText(text);
 
-            return newLobbyButton;
+            return newButton;
         }
     }
 }

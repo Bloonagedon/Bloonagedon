@@ -44,7 +44,7 @@ namespace inscryption_multiplayer
                 });
             }
         }
-        
+
         [HarmonyPatch(typeof(TurnManager), nameof(TurnManager.OpponentTurn))]
         [HarmonyPrefix]
         public static bool Prefix(ref TurnManager __instance, out IEnumerator __result)

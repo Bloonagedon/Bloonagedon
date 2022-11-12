@@ -8,11 +8,11 @@ namespace inscryption_multiplayer.Networking
 {
     internal class SteamNetworking : InscryptionNetworking
     {
-        public const bool START_ALONE = true;
+        public const bool START_ALONE = false;
 
         public static byte[] SpaceByte;
 
-        private CSteamID? LobbyID;
+        public static CSteamID? LobbyID;
         private CSteamID? OtherPlayerID;
         private string OtherPlayerName;
         private bool Connecting;
@@ -25,6 +25,7 @@ namespace inscryption_multiplayer.Networking
         private Callback<LobbyChatMsg_t> lobbyChatMsg;
 
         internal override bool Connected => LobbyID != null;
+        internal override bool IsHost => SteamMatchmaking.GetLobbyOwner((CSteamID)LobbyID) != OtherPlayerID;
 
         internal override void Host()
         {
@@ -66,7 +67,10 @@ namespace inscryption_multiplayer.Networking
                 if (START_ALONE)
                     Send("start_game");
             }
-            Debug.Log($"Failed to create lobby ({callback.m_eResult})");
+            else
+            {
+                Debug.Log($"Failed to create lobby ({callback.m_eResult})");
+            }
         }
 
         private void OnLobbyEnter(LobbyEnter_t callback, bool fail)
@@ -78,7 +82,10 @@ namespace inscryption_multiplayer.Networking
                 LobbyID = new CSteamID(callback.m_ulSteamIDLobby);
                 OtherPlayerID = SteamMatchmaking.GetLobbyOwner((CSteamID)LobbyID);
             }
-            Debug.Log($"Failed to join lobby ({callback.m_EChatRoomEnterResponse})");
+            else
+            {
+                Debug.Log($"Failed to join lobby ({callback.m_EChatRoomEnterResponse})");
+            }
         }
 
         private void OnLobbyChatUpdate(LobbyChatUpdate_t callback)
@@ -92,6 +99,7 @@ namespace inscryption_multiplayer.Networking
 
         private void OnGameLobbyJoinRequested(GameLobbyJoinRequested_t callback)
         {
+            Plugin.Log.LogInfo("Lobby join request!");
             Connecting = true;
             lobbyEnter.Set(SteamMatchmaking.JoinLobby(callback.m_steamIDLobby));
         }
