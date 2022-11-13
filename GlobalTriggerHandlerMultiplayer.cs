@@ -1,12 +1,13 @@
 ﻿using DiskCardGame;
 using inscryption_multiplayer.Networking;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace inscryption_multiplayer
 {
     public class CardInfoMultiplayer
     {
-        //still have to add card modifications here like: sac stones, campfires, goobert, etc.
+        public List<CardModificationInfo> mods { get; set; }
         public string name { get; set; }
         public CardSlotMultiplayer slot { get; set; }
     }
@@ -30,6 +31,7 @@ namespace inscryption_multiplayer
         {
             CardInfoMultiplayer cardInfo = new CardInfoMultiplayer
             {
+                mods = otherCard.Info.mods,
                 name = otherCard.Info.name,
                 slot = new CardSlotMultiplayer
                 {

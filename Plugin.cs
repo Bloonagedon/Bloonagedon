@@ -1,9 +1,11 @@
-﻿using BepInEx;
+﻿using System;
+using BepInEx;
 using BepInEx.Logging;
 using DiskCardGame;
 using HarmonyLib;
 using Steamworks;
 using System.Text;
+using inscryption_multiplayer.Networking;
 using UnityEngine;
 
 namespace inscryption_multiplayer
@@ -20,9 +22,6 @@ namespace inscryption_multiplayer
 
         public static string Directory;
 
-        protected Callback<LobbyEnter_t> Callback_lobbyEnter;
-        protected Callback<LobbyChatMsg_t> Callback_lobbyChatMsgReceived;
-
         public void Awake()
         {
             // Plugin startup logic
@@ -33,17 +32,20 @@ namespace inscryption_multiplayer
             harmony.PatchAll();
 
             Directory = base.Info.Location;
-
-            Networking.SteamNetworking.SpaceByte = Encoding.UTF8.GetBytes(" ");
         }
 
         public void Update()
         {
-            SteamAPI.RunCallbacks();
+            InscryptionNetworking.Connection.Update();
             if (Input.GetKeyDown(KeyCode.M))
             {
                 MakeAllNodesMultiplayerNodes();
             }
+        }
+
+        public void OnApplicationQuit()
+        {
+            InscryptionNetworking.Connection.Dispose();
         }
 
         //this is some very bad code to temporary test stuff as i couldn't get it to work in any other way

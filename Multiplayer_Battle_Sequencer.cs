@@ -59,7 +59,7 @@ namespace DiskCardGame
             }
             OpponentReady = false;
 
-            if (InscryptionNetworking.Connection.IsHost && !SteamNetworking.START_ALONE)
+            if (InscryptionNetworking.Connection.IsHost && !InscryptionNetworking.START_ALONE)
             {
                 Random rand = new Random();
                 if (rand.Next(0, 2) != 0)

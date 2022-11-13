@@ -1,25 +1,53 @@
-﻿using DiskCardGame;
+using DiskCardGame;
 using System.Collections.Generic;
+using System;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace inscryption_multiplayer.Networking
 {
-    internal abstract class InscryptionNetworking
+    internal abstract class InscryptionNetworking : IDisposable
     {
-        internal static InscryptionNetworking Connection = new SteamNetworking();
+        public const bool START_ALONE = false;
+        private static readonly byte[] SpaceByte;
+        
+        internal static InscryptionNetworking Connection =
+#if NETWORKING_STEAM
+            new SteamNetworking();
+#else
+            new SocketNetworking();
+#endif
 
         internal abstract bool Connected { get; }
         internal abstract bool IsHost { get; }
         internal abstract void Host();
-
-        internal abstract void SendJson(string message, object serializedClass);
-        internal abstract void Send(string message);
+        internal abstract void Join();
         internal abstract void Send(byte[] message);
+        internal abstract void Update();
+        public virtual void Dispose() {}
 
-        protected void Receive(bool selfMessage, string message)
+        internal void SendJson(string message, object serializedClass)
+        {
+            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+            byte[] jsonUtf8Bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(serializedClass));
+
+            //combines the three byte arrays
+            byte[] fullMessageBytes = new byte[messageBytes.Length + SpaceByte.Length + jsonUtf8Bytes.Length];
+            Buffer.BlockCopy(messageBytes, 0, fullMessageBytes, 0, messageBytes.Length);
+            Buffer.BlockCopy(SpaceByte, 0, fullMessageBytes, messageBytes.Length, SpaceByte.Length);
+            Buffer.BlockCopy(jsonUtf8Bytes, 0, fullMessageBytes, messageBytes.Length + SpaceByte.Length, jsonUtf8Bytes.Length);
+
+            Send(fullMessageBytes);
+        }
+
+        internal void Send(string message)
+        {
+            Send(Encoding.UTF8.GetBytes(message));
+        }
+
+        internal void Receive(bool selfMessage, string message)
         {
             string jsonString = null;
             List<string> wordList = message.Split(' ').ToList();
@@ -69,15 +97,17 @@ namespace inscryption_multiplayer.Networking
                         break;
 
                     case "CardPlacedByOpponent":
-                        CardInfoMultiplayer cardInfo = JsonSerializer.Deserialize<CardInfoMultiplayer>(jsonString);
+                        CardInfoMultiplayer cardInfo = JsonConvert.DeserializeObject<CardInfoMultiplayer>(jsonString);
                         CardSlot placedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardInfo.slot.index && x.IsPlayerSlot == cardInfo.slot.isPlayerSlot);
                         if (placedSlot.Card != null)
                         {
                             placedSlot.Card.ExitBoard(0, new Vector3(0, 0, 0));
                         }
 
+                        var internalCardInfo = CardLoader.GetCardByName(cardInfo.name);
+                        internalCardInfo.Mods = cardInfo.mods;
                         Singleton<BoardManager>.Instance.StartCoroutine(Singleton<BoardManager>.Instance.CreateCardInSlot(
-                            CardLoader.GetCardByName(cardInfo.name),
+                            internalCardInfo,
                             placedSlot,
                             0.1f,
                             false
@@ -85,7 +115,7 @@ namespace inscryption_multiplayer.Networking
                         break;
 
                     case "CardSacrificedByOpponent":
-                        CardSlotMultiplayer cardSlot = JsonSerializer.Deserialize<CardSlotMultiplayer>(jsonString);
+                        CardSlotMultiplayer cardSlot = JsonConvert.DeserializeObject<CardSlotMultiplayer>(jsonString);
                         CardSlot sacrificedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardSlot.index && x.IsPlayerSlot == cardSlot.isPlayerSlot);
 
                         if (sacrificedSlot.Card != null)
@@ -97,9 +127,19 @@ namespace inscryption_multiplayer.Networking
             }
         }
 
-        protected void Receive(bool selfMessage, byte[] message)
+        internal void Receive(bool selfMessage, byte[] message)
         {
             Receive(selfMessage, Encoding.UTF8.GetString(message).TrimEnd('\0'));
+        }
+
+        ~InscryptionNetworking()
+        {
+            Dispose();
+        }
+
+        static InscryptionNetworking()
+        {
+            SpaceByte = Encoding.UTF8.GetBytes(" ");
         }
     }
 }

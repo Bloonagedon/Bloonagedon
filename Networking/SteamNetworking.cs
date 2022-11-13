@@ -1,4 +1,6 @@
-﻿using Steamworks;
+﻿#if NETWORKING_STEAM
+
+using Steamworks;
 using System;
 using System.Text;
 using System.Text.Json;
@@ -8,10 +10,6 @@ namespace inscryption_multiplayer.Networking
 {
     internal class SteamNetworking : InscryptionNetworking
     {
-        public const bool START_ALONE = false;
-
-        public static byte[] SpaceByte;
-
         public static CSteamID? LobbyID;
         private CSteamID? OtherPlayerID;
         private string OtherPlayerName;
@@ -32,24 +30,15 @@ namespace inscryption_multiplayer.Networking
             lobbyCreated.Set(SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypeFriendsOnly, 2));
         }
 
-        internal override void SendJson(string message, object serializedClass)
+        internal override void Join()
         {
-            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-            //converts it to bytes immediately as that's 5-10% faster than converting a serialized class to a string
-            byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(serializedClass);
-
-            //combines the three byte arrays
-            byte[] fullMessageBytes = new byte[messageBytes.Length + SpaceByte.Length + jsonUtf8Bytes.Length];
-            Buffer.BlockCopy(messageBytes, 0, fullMessageBytes, 0, messageBytes.Length);
-            Buffer.BlockCopy(SpaceByte, 0, fullMessageBytes, messageBytes.Length, SpaceByte.Length);
-            Buffer.BlockCopy(jsonUtf8Bytes, 0, fullMessageBytes, messageBytes.Length + SpaceByte.Length, jsonUtf8Bytes.Length);
-
-            Send(fullMessageBytes);
+            if(Connected)
+                SteamFriends.ActivateGameOverlayInviteDialog((CSteamID)LobbyID);
         }
 
-        internal override void Send(string message)
+        internal override void Update()
         {
-            Send(Encoding.UTF8.GetBytes(message));
+            SteamAPI.RunCallbacks();
         }
 
         internal override void Send(byte[] message)
@@ -60,7 +49,7 @@ namespace inscryption_multiplayer.Networking
         private void OnLobbyCreated(LobbyCreated_t callback, bool fail)
         {
             Connecting = false;
-            if (callback.m_eResult == EResult.k_EResultOK)
+            if (!fail && callback.m_eResult == EResult.k_EResultOK)
             {
                 Debug.Log("Lobby created successfully");
                 LobbyID = new CSteamID(callback.m_ulSteamIDLobby);
@@ -76,7 +65,7 @@ namespace inscryption_multiplayer.Networking
         private void OnLobbyEnter(LobbyEnter_t callback, bool fail)
         {
             Connecting = false;
-            if (callback.m_EChatRoomEnterResponse == 1)
+            if (!fail && callback.m_EChatRoomEnterResponse == 1)
             {
                 Debug.Log("Lobby joined successfully");
                 LobbyID = new CSteamID(callback.m_ulSteamIDLobby);
@@ -131,3 +120,5 @@ namespace inscryption_multiplayer.Networking
         }
     }
 }
+
+#endif

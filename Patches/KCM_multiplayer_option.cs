@@ -1,11 +1,9 @@
-﻿using DiskCardGame;
+using DiskCardGame;
 using GBC;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
-using Steamworks;
 using System.Collections.Generic;
 using UnityEngine;
-using SteamNetworking = inscryption_multiplayer.Networking.SteamNetworking;
 
 namespace inscryption_multiplayer.Patches
 {
@@ -23,7 +21,14 @@ namespace inscryption_multiplayer.Patches
             List<GameObject> onEnableRevealedObjects = transitionController.onEnableRevealedObjects;
             List<MainInputInteractable> screenInteractables = transitionController.screenInteractables;
 
-            AscensionMenuInteractable inviteButtonController = CreateAscensionButton(menuText, "- INVITE A PLAYER -");
+            AscensionMenuInteractable inviteButtonController = CreateAscensionButton(
+                menuText, 
+#if NETWORKING_STEAM
+                "- INVITE A PLAYER -"
+#else
+                "- JOIN LOBBY -"
+#endif
+                );
             AscensionMenuInteractable lobbyButtonController = CreateAscensionButton(menuText, "- CREATE LOBBY -");
 
             onEnableRevealedObjects.Insert(onEnableRevealedObjects.IndexOf(menuText.gameObject) + 1, lobbyButtonController.gameObject);
@@ -40,10 +45,7 @@ namespace inscryption_multiplayer.Patches
 
             inviteButtonController.CursorSelectStarted = delegate (MainInputInteractable interactable)
             {
-                if (InscryptionNetworking.Connection.Connected)
-                {
-                    SteamFriends.ActivateGameOverlayInviteDialog((CSteamID)SteamNetworking.LobbyID);
-                }
+                InscryptionNetworking.Connection.Join();
             };
 
             itemsSpacing.menuItems.Insert(1, lobbyButtonController.transform);
