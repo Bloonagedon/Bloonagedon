@@ -1,12 +1,7 @@
-﻿using System;
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
-using DiskCardGame;
 using HarmonyLib;
-using Steamworks;
-using System.Text;
 using inscryption_multiplayer.Networking;
-using UnityEngine;
 
 namespace inscryption_multiplayer
 {
@@ -21,6 +16,8 @@ namespace inscryption_multiplayer
         public const string PluginVersion = "1.0.0";
 
         public static string Directory;
+
+        public static bool MultiplayerActive => InscryptionNetworking.Connection.Connected;
 
         public void Awake()
         {
@@ -37,31 +34,11 @@ namespace inscryption_multiplayer
         public void Update()
         {
             InscryptionNetworking.Connection.Update();
-            if (Input.GetKeyDown(KeyCode.M))
-            {
-                MakeAllNodesMultiplayerNodes();
-            }
         }
 
         public void OnApplicationQuit()
         {
             InscryptionNetworking.Connection.Dispose();
-        }
-
-        //this is some very bad code to temporary test stuff as i couldn't get it to work in any other way
-        public void MakeAllNodesMultiplayerNodes()
-        {
-            if (Singleton<MapNodeManager>.Instance?.nodes != null)
-            {
-                for (int i = 0; i < Singleton<MapNodeManager>.Instance.nodes.Count; i++)
-                {
-                    Plugin.Log.LogInfo(Singleton<MapNodeManager>.Instance.nodes[i].Data.GetType());
-                    if (Singleton<MapNodeManager>.Instance.nodes[i].Data.GetType() == typeof(CardBattleNodeData))
-                    {
-                        ((CardBattleNodeData)Singleton<MapNodeManager>.Instance.nodes[i].Data).specialBattleId = "Multiplayer_Battle_Sequencer";
-                    }
-                }
-            }
         }
     }
 }
