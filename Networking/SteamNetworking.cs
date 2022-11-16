@@ -2,8 +2,6 @@
 
 using Steamworks;
 using System;
-using System.Text;
-using System.Text.Json;
 using UnityEngine;
 
 namespace inscryption_multiplayer.Networking
@@ -96,7 +94,7 @@ namespace inscryption_multiplayer.Networking
         private void OnLobbyChatMsg(LobbyChatMsg_t callback)
         {
             var selfMessage = callback.m_ulSteamIDUser != OtherPlayerID?.m_SteamID;
-            if ((START_ALONE || !selfMessage) && callback.m_eChatEntryType == 1)
+            if (callback.m_eChatEntryType == 1)
             {
                 var buffer = new byte[4096];
                 var numBytes = SteamMatchmaking.GetLobbyChatEntry((CSteamID)LobbyID, (int)callback.m_iChatID, out _,
