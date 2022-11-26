@@ -1,3 +1,8 @@
 .idea
+.vs
+build
+Library
+Logs
+Temp
 bin
 obj
