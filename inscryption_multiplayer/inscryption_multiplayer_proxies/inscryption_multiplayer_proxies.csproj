@@ -3,16 +3,12 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>9.0</LangVersion>
-        <Configurations>Sockets;Steam</Configurations>
+        <Configurations>Sockets;SteamWindows;SteamLinux</Configurations>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
     
     <PropertyGroup Condition=" '$(Configuration)' == 'Sockets' ">
 	  <DefineConstants>TRACE;NETWORKING_SOCKETS</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition=" '$(Configuration)' == 'Steam' ">
-	  <DefineConstants>TRACE;NETWORKING_STEAM</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>

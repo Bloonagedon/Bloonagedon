@@ -1,22 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
 		<AssemblyName>inscryption_multiplayer</AssemblyName>
 		<Description>adds multiplayer support to inscryption</Description>
 		<Version>1.0.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>9.0</LangVersion>
-		<Configurations>Steam;Sockets</Configurations>
+		<Configurations>SteamWindows;SteamLinux;Sockets</Configurations>
 		<Platforms>AnyCPU</Platforms>
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'Sockets' ">
 	  <DefineConstants>TRACE;NETWORKING_SOCKETS</DefineConstants>
+	  <TargetFramework>netstandard2.0</TargetFramework>
 	</PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)' == 'Steam' ">
+	<PropertyGroup Condition=" '$(Configuration)' == 'SteamWindows' ">
 	  <DefineConstants>TRACE;NETWORKING_STEAM</DefineConstants>
+	  <TargetFramework>netstandard2.0</TargetFramework>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition=" '$(Configuration)' == 'SteamLinux' ">
+	  <DefineConstants>TRACE;NETWORKING_STEAM;LINUX</DefineConstants>
+	  <TargetFramework>netstandard2.1</TargetFramework>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -44,6 +50,13 @@
 		<Reference Include="websocket-sharp" Condition=" '$(Configuration)' == 'Sockets' ">
 			<HintPath>..\lib\websocket-sharp.dll</HintPath>
 		</Reference>
+	</ItemGroup>
+	
+	<ItemGroup Condition=" '$(Configuration)' == 'SteamLinux' ">
+	    <Reference Include="com.rlabrecque.steamworks.net">
+		<HintPath>..\lib\com.rlabrecque.steamworks.net.dll</HintPath>
+		<Aliases>SeparateSteamworks</Aliases>
+	    </Reference>
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">

@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
@@ -9,20 +9,25 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "inscryption_multiplayer", "
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Steam|Any CPU = Steam|Any CPU
 		Sockets|Any CPU = Sockets|Any CPU
+		SteamWindows|Any CPU = SteamWindows|Any CPU
+		SteamLinux|Any CPU = SteamLinux|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{41701142-BC69-4F3F-B0FA-451E26E6304A}.Steam|Any CPU.ActiveCfg = Steam|Any CPU
-		{41701142-BC69-4F3F-B0FA-451E26E6304A}.Steam|Any CPU.Build.0 = Steam|Any CPU
 		{41701142-BC69-4F3F-B0FA-451E26E6304A}.Sockets|Any CPU.ActiveCfg = Sockets|Any CPU
 		{41701142-BC69-4F3F-B0FA-451E26E6304A}.Sockets|Any CPU.Build.0 = Sockets|Any CPU
-		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.Steam|Any CPU.ActiveCfg = Steam|Any CPU
-		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.Steam|Any CPU.Build.0 = Steam|Any CPU
+		{41701142-BC69-4F3F-B0FA-451E26E6304A}.SteamWindows|Any CPU.ActiveCfg = SteamWindows|Any CPU
+		{41701142-BC69-4F3F-B0FA-451E26E6304A}.SteamWindows|Any CPU.Build.0 = SteamWindows|Any CPU
+		{41701142-BC69-4F3F-B0FA-451E26E6304A}.SteamLinux|Any CPU.ActiveCfg = SteamLinux|Any CPU
+		{41701142-BC69-4F3F-B0FA-451E26E6304A}.SteamLinux|Any CPU.Build.0 = SteamLinux|Any CPU
 		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.Sockets|Any CPU.ActiveCfg = Sockets|Any CPU
 		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.Sockets|Any CPU.Build.0 = Sockets|Any CPU
+		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.SteamWindows|Any CPU.ActiveCfg = SteamWindows|Any CPU
+		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.SteamWindows|Any CPU.Build.0 = SteamWindows|Any CPU
+		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.SteamLinux|Any CPU.ActiveCfg = SteamLinux|Any CPU
+		{301406B2-2A3C-4AC4-94E0-693AE73EC16B}.SteamLinux|Any CPU.Build.0 = SteamLinux|Any CPU
 	EndGlobalSection
 EndGlobal

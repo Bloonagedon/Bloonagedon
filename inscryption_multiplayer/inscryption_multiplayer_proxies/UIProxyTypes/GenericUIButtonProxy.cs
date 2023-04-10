@@ -1,9 +1,8 @@
-﻿using GBC;
 using UnityEngine;
 
 public class GenericUIButtonProxy : InscryptionUIProxy
 {
-    protected override string InternalTypeName => nameof(GenericUIButton);
+    protected override string InternalTypeName => "GenericUIButton";
 
     public int cursorType;
     public bool changeSprite;

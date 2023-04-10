@@ -1,6 +1,11 @@
-﻿#if NETWORKING_STEAM
+#if NETWORKING_STEAM
 
+#if LINUX
+extern alias SeparateSteamworks;
+using SeparateSteamworks::Steamworks;
+#else
 using Steamworks;
+#endif
 using System;
 using DiskCardGame;
 using UnityEngine;
@@ -24,7 +29,7 @@ namespace inscryption_multiplayer.Networking
         private Callback<LobbyChatMsg_t> lobbyChatMsg;
 
         internal override bool Connected => LobbyID is not null;
-        internal override bool IsHost => SteamMatchmaking.GetLobbyOwner((CSteamID)LobbyID) == PlayerID;
+        internal override bool IsHost => Connected && SteamMatchmaking.GetLobbyOwner((CSteamID)LobbyID) == PlayerID;
 
         internal override void Host()
         {
