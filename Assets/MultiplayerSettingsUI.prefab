@@ -999,7 +999,7 @@ GameObject:
   - component: {fileID: 7682293620221992170}
   - component: {fileID: 7124278586058633373}
   - component: {fileID: 5731151197684483377}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: PixelSelectionBorder_SmallWide
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1378,9 +1378,9 @@ GameObject:
   - component: {fileID: 4651339625600186965}
   - component: {fileID: 5965678203715285682}
   - component: {fileID: 2851881423713855486}
-  - component: {fileID: 103689314851072671}
   - component: {fileID: 5926965196760154832}
-  m_Layer: 0
+  - component: {fileID: 9163835271008080698}
+  m_Layer: 17
   m_Name: Button_Plus
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1504,19 +1504,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.44, y: 0.16}
   m_EdgeRadius: 0
---- !u!114 &103689314851072671
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3093045598216740813}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1159066750, guid: b974ef23d85db7a409ca48a684cc4c15, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  onlySnapY: 0
 --- !u!114 &5926965196760154832
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1530,6 +1517,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sortingLayerName: PauseMenuUI
+--- !u!114 &9163835271008080698
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3093045598216740813}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1159066750, guid: b974ef23d85db7a409ca48a684cc4c15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onlySnapY: 0
 --- !u!1 &3097868829876263713
 GameObject:
   m_ObjectHideFlags: 0
@@ -1642,7 +1642,7 @@ GameObject:
   - component: {fileID: 2881138232536496680}
   - component: {fileID: 577519809042222891}
   - component: {fileID: 2732492259603259028}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: PixelSelectionBorder_SmallWide
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2055,9 +2055,9 @@ GameObject:
   - component: {fileID: 2311111953666585463}
   - component: {fileID: 5900133069373422848}
   - component: {fileID: 1904541889602694643}
-  - component: {fileID: 6916343613412089501}
   - component: {fileID: 6172319330884761033}
-  m_Layer: 0
+  - component: {fileID: 771378057434961742}
+  m_Layer: 17
   m_Name: Button_Minus
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2181,19 +2181,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.44, y: 0.16}
   m_EdgeRadius: 0
---- !u!114 &6916343613412089501
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3695907139691498245}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1159066750, guid: b974ef23d85db7a409ca48a684cc4c15, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  onlySnapY: 0
 --- !u!114 &6172319330884761033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2207,6 +2194,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sortingLayerName: PauseMenuUI
+--- !u!114 &771378057434961742
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3695907139691498245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1159066750, guid: b974ef23d85db7a409ca48a684cc4c15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onlySnapY: 0
 --- !u!1 &4031048836274894603
 GameObject:
   m_ObjectHideFlags: 0
