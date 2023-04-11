@@ -1,6 +1,7 @@
 using DiskCardGame;
 using System.Collections.Generic;
 using System;
+using System.Collections;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
@@ -22,6 +23,8 @@ namespace inscryption_multiplayer.Networking
 
         internal bool AutoStart;
         internal string OtherPlayerName;
+
+        internal bool PlayAgainstBot;
         
         internal abstract bool Connected { get; }
         internal abstract bool IsHost { get; }
@@ -55,6 +58,12 @@ namespace inscryption_multiplayer.Networking
 
         internal void Receive(bool selfMessage, string message)
         {
+            if (message.StartsWith("bypasscheck "))
+            {
+                message = message[12..];
+                if(PlayAgainstBot)
+                    selfMessage = false;
+            }
             string jsonString = null;
             List<string> wordList = message.Split(' ').ToList();
             if (wordList.Count > 1)
@@ -89,7 +98,7 @@ namespace inscryption_multiplayer.Networking
                 //everything below here is for testing, it shouldn't be here for release or when testing it with another player
             }
 
-            //messages here should be received by all users in the lobby except by the one who sended it
+            //messages here should be received by all users in the lobby except by the one who sent it
             if (!selfMessage)
             {
                 switch (message)
@@ -116,12 +125,17 @@ namespace inscryption_multiplayer.Networking
 
                         var internalCardInfo = CardLoader.GetCardByName(cardInfo.name);
                         internalCardInfo.Mods = cardInfo.mods;
-                        Singleton<BoardManager>.Instance.StartCoroutine(Singleton<BoardManager>.Instance.CreateCardInSlot(
-                            internalCardInfo,
-                            placedSlot,
-                            0.1f,
-                            false
-                            ));
+                        Singleton<BoardManager>.Instance.StartCoroutine(CallbackRoutine(
+                            Singleton<BoardManager>.Instance.CreateCardInSlot(
+                                internalCardInfo,
+                                placedSlot,
+                                0.1f,
+                                false
+                            ), () =>
+                            {
+                                if (PlayAgainstBot)
+                                    Send("bypasscheck OpponentCardPlacePhaseEnded");
+                            }));
                         break;
 
                     case "CardSacrificedByOpponent":
@@ -146,14 +160,28 @@ namespace inscryption_multiplayer.Networking
             Receive(selfMessage, Encoding.UTF8.GetString(message).TrimEnd('\0'));
         }
 
-        internal virtual void StartGame()
+        internal virtual void StartGame(bool resetBot = true)
         {
+            if (resetBot)
+                PlayAgainstBot = false;
             Send("start_game");
+        }
+
+        internal virtual void StartGameWithBot()
+        {
+            PlayAgainstBot = true;
+            StartGame(false);
         }
 
         internal void SendSettings()
         {
             SendJson("Settings", GameSettings.Current);
+        }
+
+        private static IEnumerator CallbackRoutine(IEnumerator coroutine, Action callback)
+        {
+            yield return coroutine;
+            callback();
         }
 
         ~InscryptionNetworking()

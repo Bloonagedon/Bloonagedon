@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace inscryption_multiplayer.Networking
 {
@@ -11,7 +11,8 @@ namespace inscryption_multiplayer.Networking
     public class GameSettings
     {
         [JsonIgnore] public static GameSettings Current = new();
-
+        
         public LobbyAccess LobbyType = LobbyAccess.FriendsOnly;
+        public int MapsUsed = 1;
     }
 }

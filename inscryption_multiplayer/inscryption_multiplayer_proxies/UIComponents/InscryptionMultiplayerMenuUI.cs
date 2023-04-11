@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 
 public class InscryptionMultiplayerMenuUI : MonoBehaviour
@@ -21,6 +21,10 @@ public class InscryptionMultiplayerMenuUI : MonoBehaviour
     public GenericUIButtonProxy LobbyAccessButton;
     public Text LobbyAccessText;
     public Text SaveSettingsText;
+
+    public GenericUIButtonProxy MapsPlusButton;
+    public GenericUIButtonProxy MapsMinusButton;
+    public Text MapsNumberText;
     #endregion
     
     #region LobbyTab
@@ -29,6 +33,7 @@ public class InscryptionMultiplayerMenuUI : MonoBehaviour
     public GenericUIButtonProxy ChangeSettingsButton;
     public GenericUIButtonProxy StartGameButton;
     public GenericUIButtonProxy LeaveLobbyButton;
+    public GenericUIButtonProxy PlayWithBotButton;
     public Text StartGameText;
     #endregion
 

@@ -2,13 +2,14 @@
 using inscryption_multiplayer.Networking;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace inscryption_multiplayer
 {
     public class CardInfoMultiplayer
     {
-        public List<CardModificationInfo> mods { get; set; }
         public string name { get; set; }
+        public List<CardModificationInfo> mods { get; set; }
         public CardSlotMultiplayer slot { get; set; }
     }
     public class CardSlotMultiplayer
@@ -19,6 +20,29 @@ namespace inscryption_multiplayer
 
     public class GlobalTriggerHandlerMultiplayer : NonCardTriggerReceiver
     {
+        private static readonly CardInfoMultiplayer _TestCardInfo = new()
+        {
+            name = "Boulder",
+            mods = new List<CardModificationInfo>
+            {
+                new CardModificationInfo(Ability.Brittle),
+                new CardModificationInfo(1, 0)
+            },
+            slot = new CardSlotMultiplayer
+            {
+                isPlayerSlot = false
+            }
+        };
+
+        public static CardInfoMultiplayer TestCardInfo
+        {
+            get
+            {
+                _TestCardInfo.slot.index = Random.Range(0, 4);
+                return _TestCardInfo;
+            }
+        }
+
         public override bool RespondsToOtherCardResolve(PlayableCard otherCard)
         {
             //not needed because i can disable triggers when placing a card but i just left it here as it might be useful in the future
@@ -31,7 +55,7 @@ namespace inscryption_multiplayer
         {
             CardInfoMultiplayer cardInfo = new CardInfoMultiplayer
             {
-                mods = otherCard.Info.mods,
+                mods = otherCard.Info.Mods,
                 name = otherCard.Info.name,
                 slot = new CardSlotMultiplayer
                 {

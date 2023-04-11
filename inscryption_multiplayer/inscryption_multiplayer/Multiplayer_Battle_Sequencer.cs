@@ -17,6 +17,12 @@ namespace DiskCardGame
             if (!string.IsNullOrEmpty(transformedMessage))
             {
                 Singleton<TextDisplayer>.Instance.CurrentAdvanceMode = TextDisplayer.MessageAdvanceMode.Auto;
+                if (InscryptionNetworking.Connection.PlayAgainstBot)
+                {
+                    yield return new WaitForSecondsRealtime(1f);
+                    InscryptionNetworking.Connection.SendJson("bypasscheck CardPlacedByOpponent",
+                        GlobalTriggerHandlerMultiplayer.TestCardInfo);
+                }
                 yield return new WaitUntil(() => OpponentCardPlacePhase == false);
                 if (Singleton<TextDisplayer>.Instance.textMesh.text == transformedMessage)
                 {
@@ -43,14 +49,14 @@ namespace DiskCardGame
             GlobalTriggerHandlerMultiplayer triggerHandler = Singleton<BoardManager>.Instance.AllSlots[0].gameObject.AddComponent<GlobalTriggerHandlerMultiplayer>();
             Singleton<GlobalTriggerHandler>.Instance.RegisterNonCardReceiver(triggerHandler);
 
-            InscryptionNetworking.Connection.Send("OpponentReady");
+            InscryptionNetworking.Connection.Send("bypasscheck OpponentReady");
             if (!OpponentReady)
             {
                 string transformedMessage = Singleton<TextDisplayer>.Instance.ShowMessage("waiting for opponent");
                 if (!string.IsNullOrEmpty(transformedMessage))
                 {
                     Singleton<TextDisplayer>.Instance.CurrentAdvanceMode = TextDisplayer.MessageAdvanceMode.Auto;
-                    yield return new WaitUntil(() => OpponentReady == true);
+                    yield return new WaitUntil(() => OpponentReady);
                     if (Singleton<TextDisplayer>.Instance.textMesh.text == transformedMessage)
                     {
                         Singleton<TextDisplayer>.Instance.Clear();
@@ -61,8 +67,7 @@ namespace DiskCardGame
 
             if (InscryptionNetworking.Connection.IsHost && !InscryptionNetworking.START_ALONE)
             {
-                Random rand = new Random();
-                if (rand.Next(0, 2) != 0)
+                if (InscryptionNetworking.Connection.PlayAgainstBot || new Random().Next(0, 2) != 0)
                 {
                     Singleton<TurnManager>.Instance.playerInitiatedCombat = true;
                 }
@@ -72,6 +77,23 @@ namespace DiskCardGame
                 }
             }
             yield break;
+        }
+    }
+    
+    public class Multiplayer_Final_Battle_Sequencer : Multiplayer_Battle_Sequencer
+    {
+        public override IEnumerator GameEnd(bool playerWon)
+        {
+            Singleton<InteractionCursor>.Instance.InteractionDisabled = true;
+            yield return new WaitForSeconds(1.5f);
+            Singleton<UIManager>.Instance.Effects.GetEffect<ScreenColorEffect>().SetColor(GameColors.Instance.nearBlack);
+			Singleton<UIManager>.Instance.Effects.GetEffect<ScreenColorEffect>().SetIntensity(1f, float.MaxValue);
+			AudioController.Instance.StopAllLoops();
+			Singleton<InteractionCursor>.Instance.SetHidden(hidden: true);
+            yield return new WaitForSeconds(3f);
+            AscensionMenuScreens.ReturningFromSuccessfulRun = playerWon;
+            AscensionMenuScreens.ReturningFromFailedRun = !playerWon;
+            SceneLoader.Load("Ascension_Configure");
         }
     }
 }

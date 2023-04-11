@@ -9,7 +9,15 @@
     
     <PropertyGroup Condition=" '$(Configuration)' == 'Sockets' ">
 	  <DefineConstants>TRACE;NETWORKING_SOCKETS</DefineConstants>
-	</PropertyGroup>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition=" '$(Configuration)' == 'SteamWindows' ">
+	  <DefineConstants>TRACE;NETWORKING_STEAM</DefineConstants>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition=" '$(Configuration)' == 'SteamLinux' ">
+	  <DefineConstants>TRACE;NETWORKING_STEAM;LINUX</DefineConstants>
+    </PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Inscryption.GameLibs" Version="1.9.0-r.0" />

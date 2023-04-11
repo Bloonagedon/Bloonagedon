@@ -1,8 +1,9 @@
-﻿using System.Collections;
+using System.Collections;
 using DiskCardGame;
 using GBC;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
+using UnityEngine;
 
 namespace inscryption_multiplayer
 {
@@ -122,7 +123,7 @@ namespace inscryption_multiplayer
             {
                 menu.TabGroup_JoinMode.SetActive(false);
                 GameSettings.Current = new GameSettings();
-                UpdateSettings();
+                UpdateSettingsVisuals();
                 menu.SaveSettingsText.text = "Start";
                 menu.TabGroup_Settings.SetActive(true);
             };
@@ -133,32 +134,6 @@ namespace inscryption_multiplayer
                 menu.ResetMenu();
             };
 
-            menu.LobbyAccessButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
-            {
-                GameSettings.Current.LobbyType = GameSettings.Current.LobbyType == LobbyAccess.InviteOnly
-                    ? LobbyAccess.FriendsOnly
-                    : LobbyAccess.InviteOnly;
-                UpdateSettings();
-            };
-            menu.SettingsStartButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
-            {
-                menu.TabGroup_Settings.SetActive(false);
-                if (InscryptionNetworking.Connection.Connected)
-                {
-                    InscryptionNetworking.Connection.UpdateSettings();
-                    InscryptionNetworking.Connection.SendSettings();
-                }
-                else
-                {
-                    InscryptionNetworking.Connection.Host();
-                    menu.OtherPlayerText.text = "OTHER PLAYER: ";
-                    menu.StartGameText.text = "INVITE PLAYER";
-                }
-                menu.ChangeSettingsButton.gameObject.SetActive(true);
-                menu.StartGameButton.gameObject.SetActive(true);
-                menu.TabGroup_Lobby.SetActive(true);
-            };
-            
             menu.StartGameButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 if (InscryptionNetworking.Connection.IsHost)
@@ -191,14 +166,55 @@ namespace inscryption_multiplayer
                 menu.SaveSettingsText.text = "SAVE";
                 menu.TabGroup_Settings.SetActive(true);
             };
+            menu.PlayWithBotButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                InscryptionNetworking.Connection.StartGameWithBot();
+            };
+            
+            menu.LobbyAccessButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.LobbyType = GameSettings.Current.LobbyType == LobbyAccess.InviteOnly
+                    ? LobbyAccess.FriendsOnly
+                    : LobbyAccess.InviteOnly;
+                UpdateSettingsVisuals();
+            };
+            menu.SettingsStartButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                menu.TabGroup_Settings.SetActive(false);
+                if (InscryptionNetworking.Connection.Connected)
+                {
+                    InscryptionNetworking.Connection.UpdateSettings();
+                    InscryptionNetworking.Connection.SendSettings();
+                }
+                else
+                {
+                    InscryptionNetworking.Connection.Host();
+                    menu.OtherPlayerText.text = "OTHER PLAYER: ";
+                    menu.StartGameText.text = "INVITE PLAYER";
+                }
+                menu.ChangeSettingsButton.gameObject.SetActive(true);
+                menu.StartGameButton.gameObject.SetActive(true);
+                menu.TabGroup_Lobby.SetActive(true);
+            };
+            menu.MapsPlusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.MapsUsed = Mathf.Min(GameSettings.Current.MapsUsed + 1, 99999);
+                UpdateSettingsVisuals();
+            };
+            menu.MapsMinusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.MapsUsed = Mathf.Max(GameSettings.Current.MapsUsed - 1, 1);
+                UpdateSettingsVisuals();
+            };
         }
 
-        private static void UpdateSettings()
+        private static void UpdateSettingsVisuals()
         {
             var ui = MultiplayerAssetHandler.MultiplayerSettingsUIInstance;
             ui.LobbyAccessText.text = GameSettings.Current.LobbyType == LobbyAccess.InviteOnly
                 ? "Invite only"
                 : "Friends can join";
+            ui.MapsNumberText.text = $"{GameSettings.Current.MapsUsed} + 1";
         }
     }
 }

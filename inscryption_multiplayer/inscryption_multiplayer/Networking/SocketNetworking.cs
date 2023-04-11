@@ -10,6 +10,7 @@ using WebSocketSharp.Server;
 
 namespace inscryption_multiplayer.Networking
 {
+    [Obsolete("Outdated, use Steam networking instead.")]
     internal class SocketNetworking : InscryptionNetworking
     {
         private class SocketServer : WebSocketBehavior

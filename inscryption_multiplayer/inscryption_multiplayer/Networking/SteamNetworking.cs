@@ -75,10 +75,17 @@ namespace inscryption_multiplayer.Networking
             SteamAPI.RunCallbacks();
         }
 
-        internal override void StartGame()
+        internal override void StartGame(bool resetBot = true)
         {
             SteamMatchmaking.SetLobbyJoinable((CSteamID)LobbyID, false);
-            base.StartGame();
+            base.StartGame(resetBot);
+        }
+
+        internal override void StartGameWithBot()
+        {
+            OtherPlayerID = CSteamID.Nil;
+            OtherPlayerName = "Bot";
+            base.StartGameWithBot();
         }
 
         internal override void Send(byte[] message)
@@ -163,6 +170,7 @@ namespace inscryption_multiplayer.Networking
                     var ui = MultiplayerAssetHandler.MultiplayerSettingsUIInstance;
                     ui.OtherPlayerText.text = $"OTHER PLAYER: {OtherPlayerName}";
                     ui.StartGameText.text = "START GAME";
+                    ui.PlayWithBotButton.gameObject.SetActive(false);
                 }
             }
         }
