@@ -8,9 +8,12 @@ namespace inscryption_multiplayer
     [HarmonyPatch]
     public class Game_Patches
     {
+        public static bool OpponentReady = false;
+
         private static IEnumerator PatchedOpponentTurn(TurnManager __instance)
         {
             __instance.IsPlayerTurn = false;
+            Singleton<ViewManager>.Instance.SwitchToView(View.OpponentQueue);
             if (Singleton<PlayerHand>.Instance != null)
             {
                 Singleton<PlayerHand>.Instance.PlayingLocked = true;
@@ -43,6 +46,7 @@ namespace inscryption_multiplayer
                     false
                 });
             }
+            Singleton<ViewManager>.Instance.SwitchToView(View.Board);
         }
 
         [HarmonyPatch(typeof(TurnManager), nameof(TurnManager.OpponentTurn))]

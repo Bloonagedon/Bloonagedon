@@ -1,10 +1,11 @@
 using DiskCardGame;
-using System.Collections.Generic;
+using inscryption_multiplayer.Patches;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace inscryption_multiplayer.Networking
@@ -13,7 +14,7 @@ namespace inscryption_multiplayer.Networking
     {
         public const bool START_ALONE = false;
         private static readonly byte[] SpaceByte;
-        
+
         internal static InscryptionNetworking Connection =
 #if NETWORKING_STEAM
             new SteamNetworking();
@@ -25,17 +26,17 @@ namespace inscryption_multiplayer.Networking
         internal string OtherPlayerName;
 
         internal bool PlayAgainstBot;
-        
+
         internal abstract bool Connected { get; }
         internal abstract bool IsHost { get; }
         internal abstract void Host();
         internal abstract void Join();
-        internal virtual void Invite() {}
+        internal virtual void Invite() { }
         internal abstract void Leave();
         internal abstract void Send(byte[] message);
-        internal virtual void UpdateSettings() {}
+        internal virtual void UpdateSettings() { }
         internal abstract void Update();
-        public virtual void Dispose() {}
+        public virtual void Dispose() { }
 
         internal void SendJson(string message, object serializedClass)
         {
@@ -60,8 +61,8 @@ namespace inscryption_multiplayer.Networking
         {
             if (message.StartsWith("bypasscheck "))
             {
-                message = message[12..];
-                if(PlayAgainstBot)
+                message = message.Substring(12);
+                if (PlayAgainstBot)
                     selfMessage = false;
             }
             string jsonString = null;
@@ -85,7 +86,7 @@ namespace inscryption_multiplayer.Networking
             switch (message)
             {
                 case "start_game":
-
+                    Game_Patches.OpponentReady = false;
                     //starts a new run
                     //Singleton<AscensionMenuScreens>.Instance.TransitionToGame(true);
                     AscensionSaveData.Data.NewRun(StarterDecksUtil.GetInfo(AscensionSaveData.Data.currentStarterDeck).cards);
@@ -95,7 +96,7 @@ namespace inscryption_multiplayer.Networking
                     Plugin.Log.LogInfo("started a game!");
                     break;
 
-                //everything below here is for testing, it shouldn't be here for release or when testing it with another player
+                    //everything below here is for testing, it shouldn't be here for release or when testing it with another player
             }
 
             //messages here should be received by all users in the lobby except by the one who sent it
@@ -104,7 +105,7 @@ namespace inscryption_multiplayer.Networking
                 switch (message)
                 {
                     case "OpponentReady":
-                        ((Multiplayer_Battle_Sequencer)Singleton<TurnManager>.Instance.SpecialSequencer).OpponentReady = true;
+                        Game_Patches.OpponentReady = true;
                         break;
 
                     case "InitiateCombat":
@@ -138,16 +139,55 @@ namespace inscryption_multiplayer.Networking
                             }));
                         break;
 
+                    case "CardPlacedByOpponentInQueue":
+                        CardInfoMultiplayer cardInfoQueue = JsonConvert.DeserializeObject<CardInfoMultiplayer>(jsonString);
+                        CardSlot slotToQueueFor = Singleton<BoardManager>.Instance.opponentSlots.FirstOrDefault(x => x.Index == cardInfoQueue.slot.index);
+
+                        if (slotToQueueFor == null)
+                        {
+                            break;
+                        }
+
+                        PlayableCard cardInQueue = Singleton<TurnManager>.Instance.Opponent.Queue.FirstOrDefault(x => x.Slot.Index == cardInfoQueue.slot.index);
+
+                        if (cardInQueue != null)
+                        {
+                            cardInQueue.ExitBoard(0, new Vector3(0, 0, 0));
+                        }
+
+                        var internalCardInfoQueue = CardLoader.GetCardByName(cardInfoQueue.name);
+                        internalCardInfoQueue.Mods = cardInfoQueue.mods;
+                        Singleton<BoardManager>.Instance.StartCoroutine(CallbackRoutine(
+                            Singleton<Opponent>.Instance.QueueCard(
+                                internalCardInfoQueue,
+                                slotToQueueFor
+                            ), () =>
+                            {
+                                if (PlayAgainstBot)
+                                    Send("bypasscheck OpponentCardPlacePhaseEnded");
+                            }));
+                        break;
+
                     case "CardSacrificedByOpponent":
                         CardSlotMultiplayer cardSlot = JsonConvert.DeserializeObject<CardSlotMultiplayer>(jsonString);
-                        CardSlot sacrificedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardSlot.index && x.IsPlayerSlot == cardSlot.isPlayerSlot);
-
-                        if (sacrificedSlot.Card != null)
+                        PlayableCard sacrificedCard;
+                        if (cardSlot.isQueueSlot)
                         {
-                            sacrificedSlot.Card.ExitBoard(0, new Vector3(0, 0, 0));
+                            sacrificedCard = Singleton<TurnManager>.Instance.Opponent.Queue.FirstOrDefault(x => x.Slot.Index == cardSlot.index);
                         }
+                        else
+                        {
+                            CardSlot sacrificedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardSlot.index && x.IsPlayerSlot == cardSlot.isPlayerSlot);
+                            if (sacrificedSlot.Card == null)
+                            {
+                                break;
+                            }
+                            sacrificedCard = sacrificedSlot.Card;
+                        }
+
+                        sacrificedCard.ExitBoard(0, new Vector3(0, 0, 0));
                         break;
-                    
+
                     case "Settings":
                         GameSettings.Current = JsonConvert.DeserializeObject<GameSettings>(jsonString);
                         break;

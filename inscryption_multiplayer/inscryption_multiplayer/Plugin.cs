@@ -1,8 +1,8 @@
-﻿using System.IO;
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
+using System.IO;
 
 namespace inscryption_multiplayer
 {

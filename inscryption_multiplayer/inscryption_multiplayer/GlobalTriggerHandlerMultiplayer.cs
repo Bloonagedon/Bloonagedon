@@ -1,5 +1,6 @@
 ﻿using DiskCardGame;
 using inscryption_multiplayer.Networking;
+using inscryption_multiplayer.Patches;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace inscryption_multiplayer
     {
         public bool isPlayerSlot { get; set; }
         public int index { get; set; }
+        public bool isQueueSlot { get; set; }
     }
 
     public class GlobalTriggerHandlerMultiplayer : NonCardTriggerReceiver
@@ -77,7 +79,8 @@ namespace inscryption_multiplayer
             CardSlotMultiplayer cardSlot = new CardSlotMultiplayer
             {
                 index = deathSlot.Index,
-                isPlayerSlot = !deathSlot.IsPlayerSlot
+                isPlayerSlot = !deathSlot.IsPlayerSlot,
+                isQueueSlot = Player_Backline.IsPlayerQueueSlot(deathSlot)
             };
             InscryptionNetworking.Connection.SendJson("CardSacrificedByOpponent", cardSlot);
             yield break;

@@ -48,7 +48,7 @@ namespace inscryption_multiplayer.Networking
         internal override void Invite()
         {
             base.Invite();
-            if(Connected)
+            if (Connected)
                 SteamFriends.ActivateGameOverlayInviteDialog((CSteamID)LobbyID);
         }
 
@@ -162,7 +162,7 @@ namespace inscryption_multiplayer.Networking
             {
                 OtherPlayerID = new CSteamID(callback.m_ulSteamIDMakingChange);
                 OtherPlayerName = SteamFriends.GetFriendPersonaName((CSteamID)OtherPlayerID);
-                if(AutoStart)
+                if (AutoStart)
                     StartGame();
                 else
                 {
@@ -208,8 +208,10 @@ namespace inscryption_multiplayer.Networking
 
         internal SteamNetworking()
         {
+            SteamAPI.Init();
+
             PlayerID = SteamUser.GetSteamID();
-            
+
             lobbyChatUpdate = Callback<LobbyChatUpdate_t>.Create(OnLobbyChatUpdate);
             gameLobbyJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnGameLobbyJoinRequested);
             lobbyChatMsg = Callback<LobbyChatMsg_t>.Create(OnLobbyChatMsg);
