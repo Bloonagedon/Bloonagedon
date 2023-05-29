@@ -125,10 +125,20 @@ namespace inscryption_multiplayer.Networking
                         }
 
                         var internalCardInfo = CardLoader.GetCardByName(cardInfo.name);
-                        internalCardInfo.Mods = cardInfo.mods;
+                        internalCardInfo.Mods = cardInfo.mods ?? new List<CardModificationInfo>();
+
+                        PlayableCard playableCard = CardSpawner.SpawnPlayableCard(internalCardInfo);
+                        playableCard.TemporaryMods = cardInfo.temporaryMods ?? new List<CardModificationInfo>();
+
+                        if (!cardInfo.slot.isPlayerSlot)
+                        {
+                            playableCard.SetIsOpponentCard(true);
+                            Singleton<TurnManager>.Instance.Opponent.ModifySpawnedCard(playableCard);
+                        }
+
                         Singleton<BoardManager>.Instance.StartCoroutine(CallbackRoutine(
-                            Singleton<BoardManager>.Instance.CreateCardInSlot(
-                                internalCardInfo,
+                            Singleton<BoardManager>.Instance.TransitionAndResolveCreatedCard(
+                                playableCard,
                                 placedSlot,
                                 0.1f,
                                 false
@@ -156,16 +166,20 @@ namespace inscryption_multiplayer.Networking
                         }
 
                         var internalCardInfoQueue = CardLoader.GetCardByName(cardInfoQueue.name);
-                        internalCardInfoQueue.Mods = cardInfoQueue.mods;
-                        Singleton<BoardManager>.Instance.StartCoroutine(CallbackRoutine(
-                            Singleton<Opponent>.Instance.QueueCard(
-                                internalCardInfoQueue,
-                                slotToQueueFor
-                            ), () =>
-                            {
-                                if (PlayAgainstBot)
-                                    Send("bypasscheck OpponentCardPlacePhaseEnded");
-                            }));
+                        internalCardInfoQueue.Mods = cardInfoQueue.mods ?? new List<CardModificationInfo>();
+
+                        Singleton<ViewManager>.Instance.SwitchToView(Singleton<BoardManager>.Instance.QueueView, false, false);
+
+                        PlayableCard playableCardQueue = Singleton<Opponent>.Instance.CreateCard(internalCardInfoQueue);
+                        playableCardQueue.TemporaryMods = cardInfoQueue.temporaryMods ?? new List<CardModificationInfo>();
+
+                        Singleton<BoardManager>.Instance.QueueCardForSlot(playableCardQueue, slotToQueueFor, 0.25f);
+                        Singleton<Opponent>.Instance.Queue.Add(playableCardQueue);
+
+                        if (PlayAgainstBot)
+                        {
+                            Send("bypasscheck OpponentCardPlacePhaseEnded");
+                        }
                         break;
 
                     case "CardSacrificedByOpponent":
@@ -184,8 +198,10 @@ namespace inscryption_multiplayer.Networking
                             }
                             sacrificedCard = sacrificedSlot.Card;
                         }
-
-                        sacrificedCard.ExitBoard(0, new Vector3(0, 0, 0));
+                        if (sacrificedCard != null)
+                        {
+                            sacrificedCard.ExitBoard(0, new Vector3(0, 0, 0));
+                        }
                         break;
 
                     case "Settings":

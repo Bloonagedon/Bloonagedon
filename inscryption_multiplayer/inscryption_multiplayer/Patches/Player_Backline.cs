@@ -85,6 +85,7 @@ namespace inscryption_multiplayer.Patches
                     {
                         CardInfoMultiplayer cardInfo = new CardInfoMultiplayer
                         {
+                            temporaryMods = card.TemporaryMods,
                             mods = card.Info.Mods,
                             name = card.Info.name,
                             slot = new CardSlotMultiplayer
@@ -93,7 +94,6 @@ namespace inscryption_multiplayer.Patches
                                 index = GetPlayerQueueSlotIndex(card.Slot)
                             }
                         };
-
 
                         InscryptionNetworking.Connection.SendJson("CardPlacedByOpponentInQueue", cardInfo);
                     }
@@ -155,6 +155,7 @@ namespace inscryption_multiplayer.Patches
             {
                 CardInfoMultiplayer cardInfo = new CardInfoMultiplayer
                 {
+                    temporaryMods = card.TemporaryMods,
                     mods = card.Info.mods,
                     name = card.Info.name,
                     slot = new CardSlotMultiplayer
@@ -164,6 +165,7 @@ namespace inscryption_multiplayer.Patches
                 };
 
                 //otherCard.QueuedSlot = Singleton<BoardManager>.Instance.playerSlots[Game_Patches.PlayerQueueSlots.IndexOf(otherCard.slot)];
+                AssignedSlot.Card = card;
                 card.Slot = AssignedSlot;
                 card.OpponentCard = false;
                 InscryptionNetworking.Connection.SendJson("CardPlacedByOpponentInQueue", cardInfo);
@@ -274,6 +276,28 @@ namespace inscryption_multiplayer.Patches
             return false;
         }
 
+        [HarmonyPatch(typeof(CardSlot), nameof(CardSlot.Index), MethodType.Getter)]
+        [HarmonyPrefix]
+        public static bool IndexPrefix(ref CardSlot __instance, ref int __result)
+        {
+            if (IsPlayerQueueSlot(__instance))
+            {
+                __result = GetPlayerQueueSlotIndex(__instance);
+            }
+            else
+            {
+                if (__instance.IsPlayerSlot)
+                {
+                    __result = Singleton<BoardManager>.Instance.PlayerSlotsCopy.IndexOf(__instance);
+                }
+                else
+                {
+                    __result = Singleton<BoardManager>.Instance.OpponentSlotsCopy.IndexOf(__instance);
+                }
+            }
+            return false;
+        }
+
         [HarmonyPatch(typeof(ViewManager), nameof(ViewManager.GetViewInfo))]
         [HarmonyPostfix]
         public static void Postfix(View view, ref ViewInfo __result)
@@ -316,38 +340,47 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static void AddPlayerBackline(BoardManager3D __instance)
         {
-            PlayerQueueSlots = new List<CardSlot>();
-
-            for (int i = 0; i < Singleton<BoardManager>.Instance.AllSlotsCopy.Count; i++)
+            if (PlayerQueueSlots.Count == 0)
             {
-                Vector3 NewPos = Singleton<BoardManager>.Instance.AllSlots[i].transform.position + new Vector3(0, 0, 0.25f);
-                Singleton<BoardManager>.Instance.AllSlots[i].transform.position = NewPos;
+
+                for (int i = 0; i < Singleton<BoardManager>.Instance.AllSlotsCopy.Count; i++)
+                {
+                    Vector3 NewPos = Singleton<BoardManager>.Instance.AllSlots[i].transform.position + new Vector3(0, 0, 0.25f);
+                    Singleton<BoardManager>.Instance.AllSlots[i].transform.position = NewPos;
+                }
+
+                for (int i = 0; i < Singleton<BoardManager>.Instance.OpponentQueueSlots.Count; i++)
+                {
+                    Vector3 NewPos = Singleton<BoardManager>.Instance.OpponentQueueSlots[i].transform.position + new Vector3(0, 0, 0.25f);
+                    Singleton<BoardManager>.Instance.OpponentQueueSlots[i].transform.position = NewPos;
+                }
+
+                Transform BoardObject = Singleton<BoardManager3D>.Instance.transform;
+                Transform playerSlotsObject = BoardObject.Find("PlayerSlots");
+
+                BoardObject.Find("CardDrawPiles").transform.localPosition = new Vector3(0.75f, 0f, 0f);
+
+                foreach (CardSlot slot in Singleton<BoardManager>.Instance.playerSlots)
+                {
+                    CardSlot PlayerBackline = UnityEngine.Object.Instantiate(CardSlotPrefab, playerSlotsObject);
+                    PlayerBackline.transform.position = slot.gameObject.transform.position + new Vector3(0, 0, -2.1f);
+                    PlayerBackline.transform.GetChild(0).transform.localRotation = Quaternion.Euler(90, 0, 0);
+                    Material PlayerQueueSlotMaterial = QueueSlotMaterial;
+                    PlayerQueueSlotMaterial.mainTextureScale = new Vector2(1, -1);
+                    PlayerBackline.transform.GetComponentInChildren<MeshRenderer>().material = PlayerQueueSlotMaterial;
+                    PlayerBackline.currentState = HighlightedInteractable.State.Interactable;
+                    PlayerBackline.SetColors(QueueSlotBaseColor, QueueSlotInteractColor, QueueSlotHightlightColor);
+                    PlayerBackline.opposingSlot = slot;
+
+                    PlayerQueueSlots.Add(PlayerBackline);
+                }
             }
-
-            for (int i = 0; i < Singleton<BoardManager>.Instance.OpponentQueueSlots.Count; i++)
+            else
             {
-                Vector3 NewPos = Singleton<BoardManager>.Instance.OpponentQueueSlots[i].transform.position + new Vector3(0, 0, 0.25f);
-                Singleton<BoardManager>.Instance.OpponentQueueSlots[i].transform.position = NewPos;
-            }
-
-            Transform BoardObject = Singleton<BoardManager3D>.Instance.transform;
-            Transform playerSlotsObject = BoardObject.Find("PlayerSlots");
-
-            BoardObject.Find("CardDrawPiles").transform.localPosition = new Vector3(0.75f, 0f, 0f);
-
-            foreach (CardSlot slot in Singleton<BoardManager>.Instance.playerSlots)
-            {
-                CardSlot PlayerBackline = UnityEngine.Object.Instantiate(CardSlotPrefab, playerSlotsObject);
-                PlayerBackline.transform.position = slot.gameObject.transform.position + new Vector3(0, 0, -2.1f);
-                PlayerBackline.transform.GetChild(0).transform.localRotation = Quaternion.Euler(90, 0, 0);
-                Material PlayerQueueSlotMaterial = QueueSlotMaterial;
-                PlayerQueueSlotMaterial.mainTextureScale = new Vector2(1, -1);
-                PlayerBackline.transform.GetComponentInChildren<MeshRenderer>().material = PlayerQueueSlotMaterial;
-                PlayerBackline.currentState = HighlightedInteractable.State.Interactable;
-                PlayerBackline.SetColors(QueueSlotBaseColor, QueueSlotInteractColor, QueueSlotHightlightColor);
-                PlayerBackline.opposingSlot = slot;
-
-                PlayerQueueSlots.Add(PlayerBackline);
+                foreach (CardSlot slot in PlayerQueueSlots)
+                {
+                    slot.gameObject.SetActive(true);
+                }
             }
         }
     }

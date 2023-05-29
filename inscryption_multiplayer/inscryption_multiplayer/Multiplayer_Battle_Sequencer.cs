@@ -1,7 +1,9 @@
 ﻿using inscryption_multiplayer;
 using inscryption_multiplayer.Networking;
 using inscryption_multiplayer.Patches;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = System.Random;
 
@@ -12,6 +14,22 @@ namespace DiskCardGame
         public bool OpponentCardPlacePhase = false;
         public override IEnumerator OpponentUpkeep()
         {
+
+            foreach (PlayableCard card in Singleton<Opponent>.Instance.Queue)
+            {
+                if (InscryptionNetworking.Connection.PlayAgainstBot)
+                {
+                    yield return new WaitForSecondsRealtime(1f);
+                    InscryptionNetworking.Connection.SendJson("bypasscheck CardPlacedByOpponent",
+                        GlobalTriggerHandlerMultiplayer.TestCardInfoWithSpecificSlot(card.QueuedSlot.Index));
+                }
+
+                if (card.QueuedSlot.Card == null)
+                {
+                    card.ExitBoard(0, new Vector3(0, 0, 0));
+                }
+            }
+
             OpponentCardPlacePhase = true;
             string transformedMessage = Singleton<TextDisplayer>.Instance.ShowMessage("waiting for opponent to finish their turn");
             if (!string.IsNullOrEmpty(transformedMessage))
@@ -20,7 +38,7 @@ namespace DiskCardGame
                 if (InscryptionNetworking.Connection.PlayAgainstBot)
                 {
                     yield return new WaitForSecondsRealtime(1f);
-                    InscryptionNetworking.Connection.SendJson("bypasscheck CardPlacedByOpponent",
+                    InscryptionNetworking.Connection.SendJson("bypasscheck CardPlacedByOpponentInQueue",
                         GlobalTriggerHandlerMultiplayer.TestCardInfo);
                 }
                 yield return new WaitUntil(() => OpponentCardPlacePhase == false);
@@ -94,11 +112,12 @@ namespace DiskCardGame
             }
             yield break;
         }
+
         public override IEnumerator GameEnd(bool playerWon)
         {
             foreach (CardSlot slot in Player_Backline.PlayerQueueSlots)
             {
-                Destroy(slot.gameObject);
+                slot.gameObject.SetActive(false);
             }
             yield break;
         }

@@ -11,6 +11,7 @@ namespace inscryption_multiplayer
     {
         public string name { get; set; }
         public List<CardModificationInfo> mods { get; set; }
+        public List<CardModificationInfo> temporaryMods { get; set; }
         public CardSlotMultiplayer slot { get; set; }
     }
     public class CardSlotMultiplayer
@@ -45,6 +46,12 @@ namespace inscryption_multiplayer
             }
         }
 
+        public static CardInfoMultiplayer TestCardInfoWithSpecificSlot(int index)
+        {
+            _TestCardInfo.slot.index = index;
+            return _TestCardInfo;
+        }
+
         public override bool RespondsToOtherCardResolve(PlayableCard otherCard)
         {
             //not needed because i can disable triggers when placing a card but i just left it here as it might be useful in the future
@@ -57,6 +64,7 @@ namespace inscryption_multiplayer
         {
             CardInfoMultiplayer cardInfo = new CardInfoMultiplayer
             {
+                temporaryMods = otherCard.TemporaryMods,
                 mods = otherCard.Info.Mods,
                 name = otherCard.Info.name,
                 slot = new CardSlotMultiplayer

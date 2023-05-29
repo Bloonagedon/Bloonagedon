@@ -1,5 +1,6 @@
 ﻿using DiskCardGame;
 using HarmonyLib;
+using inscryption_multiplayer.Patches;
 using System.Collections;
 using UnityEngine;
 
@@ -54,6 +55,32 @@ namespace inscryption_multiplayer
         public static bool Prefix(ref TurnManager __instance, out IEnumerator __result)
         {
             __result = PatchedOpponentTurn(__instance);
+            return false;
+        }
+
+        //probably gotta find a less janky solution, but i'm tired so this is good enough for now
+        [HarmonyPatch(typeof(CombatPhaseManager), nameof(CombatPhaseManager.SlotAttackSequence))]
+        [HarmonyPrefix]
+        public static bool SlotAttackSequencePrefix(CardSlot slot)
+        {
+            if (Player_Backline.IsPlayerQueueSlot(slot))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(Part1GameFlowManager), nameof(Part1GameFlowManager.PlayerLostBattleSequence))]
+        [HarmonyPrefix]
+        public static bool PlayerLostBattleSequencePrefix()
+        {
+            return false;
+        }
+
+        [HarmonyPatch(typeof(CardDrawPiles), nameof(CardDrawPiles.ExhaustedSequence))]
+        [HarmonyPrefix]
+        public static bool ExhaustedSequencePrefix()
+        {
             return false;
         }
     }
