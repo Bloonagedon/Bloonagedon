@@ -25,6 +25,9 @@ public class InscryptionMultiplayerMenuUI : MonoBehaviour
     public GenericUIButtonProxy MapsPlusButton;
     public GenericUIButtonProxy MapsMinusButton;
     public Text MapsNumberText;
+
+    public GenericUIButtonProxy ToggleTotemsButton;
+    public Text TotemSettingText;
     #endregion
     
     #region LobbyTab

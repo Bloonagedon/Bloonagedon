@@ -103,6 +103,19 @@ namespace inscryption_multiplayer
             }
             return true;
         }
+        
+        [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.SwitchToScreen))]
+        [HarmonyPrefix]
+        private static bool ExitAscensionAfterMatch(AscensionMenuScreens __instance)
+        {
+            if(Plugin.MultiplayerActive)
+            {
+                //Plugin.MultiplayerActive = false;
+                __instance.ExitAscension();
+                return false;
+            }
+            return true;
+        }
 
         private static void SetupMultiplayerMenuUI(InscryptionMultiplayerMenuUI menu)
         {
@@ -206,15 +219,21 @@ namespace inscryption_multiplayer
                 GameSettings.Current.MapsUsed = Mathf.Max(GameSettings.Current.MapsUsed - 1, 1);
                 UpdateSettingsVisuals();
             };
+            menu.ToggleTotemsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.AllowTotems ^= true;
+                UpdateSettingsVisuals();
+            };
         }
 
         private static void UpdateSettingsVisuals()
         {
             var ui = MultiplayerAssetHandler.MultiplayerSettingsUIInstance;
             ui.LobbyAccessText.text = GameSettings.Current.LobbyType == LobbyAccess.InviteOnly
-                ? "Invite only"
-                : "Friends can join";
+                ? "INVITE ONLY"
+                : "FRIENDS CAN JOIN";
             ui.MapsNumberText.text = $"{GameSettings.Current.MapsUsed} + 1";
+            ui.TotemSettingText.text = GameSettings.Current.AllowTotems ? "TOTEMS ENABLED" : "TOTEMS DISABLED";
         }
     }
 }

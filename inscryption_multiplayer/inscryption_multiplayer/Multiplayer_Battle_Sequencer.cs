@@ -20,8 +20,8 @@ namespace DiskCardGame
                 if (InscryptionNetworking.Connection.PlayAgainstBot)
                 {
                     yield return new WaitForSecondsRealtime(1f);
-                    InscryptionNetworking.Connection.SendJson("bypasscheck CardPlacedByOpponent",
-                        GlobalTriggerHandlerMultiplayer.TestCardInfoWithSpecificSlot(card.QueuedSlot.Index));
+                    InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardPlacedByOpponent,
+                        GlobalTriggerHandlerMultiplayer.TestCardInfoWithSpecificSlot(card.QueuedSlot.Index), true);
                 }
 
                 if (card.QueuedSlot.Card == null)
@@ -38,8 +38,8 @@ namespace DiskCardGame
                 if (InscryptionNetworking.Connection.PlayAgainstBot)
                 {
                     yield return new WaitForSecondsRealtime(1f);
-                    InscryptionNetworking.Connection.SendJson("bypasscheck CardPlacedByOpponentInQueue",
-                        GlobalTriggerHandlerMultiplayer.TestCardInfo);
+                    InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardQueuedByOpponent,
+                        GlobalTriggerHandlerMultiplayer.TestCardInfo, true);
                 }
                 yield return new WaitUntil(() => OpponentCardPlacePhase == false);
                 if (Singleton<TextDisplayer>.Instance.textMesh.text == transformedMessage)
@@ -57,7 +57,7 @@ namespace DiskCardGame
 
         public override IEnumerator PlayerCombatStart()
         {
-            InscryptionNetworking.Connection.Send("OpponentCardPlacePhaseEnded");
+            InscryptionNetworking.Connection.Send(NetworkingMessage.OpponentCardPlacePhaseEnded);
             yield break;
         }
 
@@ -77,13 +77,13 @@ namespace DiskCardGame
             yield break;
         }
 
-        public override IEnumerator PreHandDraw()
+        public static IEnumerator WaitForOpponent()
         {
             //i assign the trigger handler to a slot, there might be something better to attach it to but this seems the easiest for now
             GlobalTriggerHandlerMultiplayer triggerHandler = Singleton<BoardManager>.Instance.AllSlots[0].gameObject.AddComponent<GlobalTriggerHandlerMultiplayer>();
             Singleton<GlobalTriggerHandler>.Instance.RegisterNonCardReceiver(triggerHandler);
 
-            InscryptionNetworking.Connection.Send("bypasscheck OpponentReady");
+            InscryptionNetworking.Connection.Send(NetworkingMessage.OpponentReady, true);
             if (!Game_Patches.OpponentReady)
             {
                 string transformedMessage = Singleton<TextDisplayer>.Instance.ShowMessage("waiting for opponent");
@@ -107,7 +107,7 @@ namespace DiskCardGame
                 }
                 else
                 {
-                    InscryptionNetworking.Connection.Send("InitiateCombat");
+                    InscryptionNetworking.Connection.Send(NetworkingMessage.InitiateCombat);
                 }
             }
             yield break;

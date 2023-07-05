@@ -10,6 +10,19 @@ using UnityEngine;
 
 namespace inscryption_multiplayer.Networking
 {
+    public static class NetworkingMessage
+    {
+        public const string StartGame = "start_game";
+        public const string OpponentReady = "OpponentReady";
+        public const string InitiateCombat = "InitiateCombat";
+        public const string OpponentCardPlacePhaseEnded = "OpponentCardPlacePhaseEnded";
+        public const string CardPlacedByOpponent = "CardPlacedByOpponent";
+        public const string CardQueuedByOpponent = "CardPlacedByOpponentInQueue";
+        public const string CardSacrificedByOpponent = "CardSacrificedByOpponent";
+        public const string ChangeOpponentTotem = "ChangeOpponentTotem";
+        public const string ChangeSettings = "ChangeSettings";
+    }
+    
     internal abstract class InscryptionNetworking : IDisposable
     {
         public const bool START_ALONE = false;
@@ -38,8 +51,10 @@ namespace inscryption_multiplayer.Networking
         internal abstract void Update();
         public virtual void Dispose() { }
 
-        internal void SendJson(string message, object serializedClass)
+        internal void SendJson(string message, object serializedClass, bool bypassCheck = false)
         {
+            if (bypassCheck)
+                message = "bypasscheck " + message;
             byte[] messageBytes = Encoding.UTF8.GetBytes(message);
             byte[] jsonUtf8Bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(serializedClass));
 
@@ -52,8 +67,10 @@ namespace inscryption_multiplayer.Networking
             Send(fullMessageBytes);
         }
 
-        internal void Send(string message)
+        internal void Send(string message, bool bypassCheck = false)
         {
+            if (bypassCheck)
+                message = "bypasscheck " + message;
             Send(Encoding.UTF8.GetBytes(message));
         }
 
@@ -85,7 +102,8 @@ namespace inscryption_multiplayer.Networking
             //messages here should be received by all users in the lobby
             switch (message)
             {
-                case "start_game":
+                case NetworkingMessage.StartGame:
+                    MultiplayerRunState.Run = new();
                     Game_Patches.OpponentReady = false;
                     //starts a new run
                     //Singleton<AscensionMenuScreens>.Instance.TransitionToGame(true);
@@ -104,19 +122,19 @@ namespace inscryption_multiplayer.Networking
             {
                 switch (message)
                 {
-                    case "OpponentReady":
+                    case NetworkingMessage.OpponentReady:
                         Game_Patches.OpponentReady = true;
                         break;
 
-                    case "InitiateCombat":
+                    case NetworkingMessage.InitiateCombat:
                         Singleton<TurnManager>.Instance.playerInitiatedCombat = true;
                         break;
 
-                    case "OpponentCardPlacePhaseEnded":
+                    case NetworkingMessage.OpponentCardPlacePhaseEnded:
                         ((Multiplayer_Battle_Sequencer)Singleton<TurnManager>.Instance.SpecialSequencer).OpponentCardPlacePhase = false;
                         break;
 
-                    case "CardPlacedByOpponent":
+                    case NetworkingMessage.CardPlacedByOpponent:
                         CardInfoMultiplayer cardInfo = JsonConvert.DeserializeObject<CardInfoMultiplayer>(jsonString);
                         CardSlot placedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardInfo.slot.index && x.IsPlayerSlot == cardInfo.slot.isPlayerSlot);
                         if (placedSlot.Card != null)
@@ -129,6 +147,8 @@ namespace inscryption_multiplayer.Networking
 
                         PlayableCard playableCard = CardSpawner.SpawnPlayableCard(internalCardInfo);
                         playableCard.TemporaryMods = cardInfo.temporaryMods ?? new List<CardModificationInfo>();
+                        
+                        playableCard.OnStatsChanged();
 
                         if (!cardInfo.slot.isPlayerSlot)
                         {
@@ -136,7 +156,7 @@ namespace inscryption_multiplayer.Networking
                             Singleton<TurnManager>.Instance.Opponent.ModifySpawnedCard(playableCard);
                         }
 
-                        Singleton<BoardManager>.Instance.StartCoroutine(CallbackRoutine(
+                        Singleton<BoardManager>.Instance.StartCoroutine(Utils.CallbackRoutine(
                             Singleton<BoardManager>.Instance.TransitionAndResolveCreatedCard(
                                 playableCard,
                                 placedSlot,
@@ -145,11 +165,11 @@ namespace inscryption_multiplayer.Networking
                             ), () =>
                             {
                                 if (PlayAgainstBot)
-                                    Send("bypasscheck OpponentCardPlacePhaseEnded");
+                                    Send(NetworkingMessage.OpponentCardPlacePhaseEnded, true);
                             }));
                         break;
 
-                    case "CardPlacedByOpponentInQueue":
+                    case NetworkingMessage.CardQueuedByOpponent:
                         CardInfoMultiplayer cardInfoQueue = JsonConvert.DeserializeObject<CardInfoMultiplayer>(jsonString);
                         CardSlot slotToQueueFor = Singleton<BoardManager>.Instance.opponentSlots.FirstOrDefault(x => x.Index == cardInfoQueue.slot.index);
 
@@ -173,16 +193,18 @@ namespace inscryption_multiplayer.Networking
                         PlayableCard playableCardQueue = Singleton<Opponent>.Instance.CreateCard(internalCardInfoQueue);
                         playableCardQueue.TemporaryMods = cardInfoQueue.temporaryMods ?? new List<CardModificationInfo>();
 
+                        playableCardQueue.OnStatsChanged();
+
                         Singleton<BoardManager>.Instance.QueueCardForSlot(playableCardQueue, slotToQueueFor, 0.25f);
                         Singleton<Opponent>.Instance.Queue.Add(playableCardQueue);
 
                         if (PlayAgainstBot)
                         {
-                            Send("bypasscheck OpponentCardPlacePhaseEnded");
+                            Send(NetworkingMessage.OpponentCardPlacePhaseEnded, true);
                         }
                         break;
 
-                    case "CardSacrificedByOpponent":
+                    case NetworkingMessage.CardSacrificedByOpponent:
                         CardSlotMultiplayer cardSlot = JsonConvert.DeserializeObject<CardSlotMultiplayer>(jsonString);
                         PlayableCard sacrificedCard;
                         if (cardSlot.isQueueSlot)
@@ -203,8 +225,13 @@ namespace inscryption_multiplayer.Networking
                             sacrificedCard.ExitBoard(0, new Vector3(0, 0, 0));
                         }
                         break;
+                    
+                    case NetworkingMessage.ChangeOpponentTotem:
+                        MultiplayerRunState.Run.OpponentTotem =
+                            JsonConvert.DeserializeObject<TotemDefinition>(jsonString);
+                        break;
 
-                    case "Settings":
+                    case NetworkingMessage.ChangeSettings:
                         GameSettings.Current = JsonConvert.DeserializeObject<GameSettings>(jsonString);
                         break;
                 }
@@ -220,7 +247,7 @@ namespace inscryption_multiplayer.Networking
         {
             if (resetBot)
                 PlayAgainstBot = false;
-            Send("start_game");
+            Send(NetworkingMessage.StartGame);
         }
 
         internal virtual void StartGameWithBot()
@@ -231,13 +258,7 @@ namespace inscryption_multiplayer.Networking
 
         internal void SendSettings()
         {
-            SendJson("Settings", GameSettings.Current);
-        }
-
-        private static IEnumerator CallbackRoutine(IEnumerator coroutine, Action callback)
-        {
-            yield return coroutine;
-            callback();
+            SendJson(NetworkingMessage.ChangeSettings, GameSettings.Current);
         }
 
         ~InscryptionNetworking()

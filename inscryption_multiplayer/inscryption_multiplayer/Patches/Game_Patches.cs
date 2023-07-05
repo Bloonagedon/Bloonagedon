@@ -50,6 +50,14 @@ namespace inscryption_multiplayer
             Singleton<ViewManager>.Instance.SwitchToView(View.Board);
         }
 
+        [HarmonyPatch(typeof(LifeManager), nameof(LifeManager.Initialize))]
+        [HarmonyPostfix]
+        public static void WaitForOpponent(ref IEnumerator __result)
+        {
+            if(Plugin.MultiplayerActive)
+                __result = Utils.JoinCoroutines(__result, Utils.CallbackRoutine(Multiplayer_Battle_Sequencer.WaitForOpponent(), Totem_Sync.ApplyTotem));
+        }
+
         [HarmonyPatch(typeof(TurnManager), nameof(TurnManager.OpponentTurn))]
         [HarmonyPrefix]
         public static bool Prefix(ref TurnManager __instance, out IEnumerator __result)

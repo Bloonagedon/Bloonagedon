@@ -23,7 +23,7 @@ namespace inscryption_multiplayer
         [HarmonyPrefix]
         public static void RemoveBuildTotemNodeData(ref List<NodeData> possibilities)
         {
-            if(Plugin.MultiplayerActive)
+            if(Plugin.MultiplayerActive && !GameSettings.Current.AllowTotems)
                 possibilities.RemoveAll(n => n is BuildTotemNodeData);
         }
 

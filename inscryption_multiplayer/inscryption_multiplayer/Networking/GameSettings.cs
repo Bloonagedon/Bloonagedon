@@ -14,5 +14,6 @@ namespace inscryption_multiplayer.Networking
         
         public LobbyAccess LobbyType = LobbyAccess.FriendsOnly;
         public int MapsUsed = 1;
+        public bool AllowTotems;
     }
 }

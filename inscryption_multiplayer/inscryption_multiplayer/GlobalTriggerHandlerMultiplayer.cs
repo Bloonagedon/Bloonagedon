@@ -73,7 +73,7 @@ namespace inscryption_multiplayer
                     isPlayerSlot = !otherCard.Slot.IsPlayerSlot
                 }
             };
-            InscryptionNetworking.Connection.SendJson("CardPlacedByOpponent", cardInfo);
+            InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardPlacedByOpponent, cardInfo);
             yield break;
         }
 
@@ -90,7 +90,7 @@ namespace inscryption_multiplayer
                 isPlayerSlot = !deathSlot.IsPlayerSlot,
                 isQueueSlot = Player_Backline.IsPlayerQueueSlot(deathSlot)
             };
-            InscryptionNetworking.Connection.SendJson("CardSacrificedByOpponent", cardSlot);
+            InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardSacrificedByOpponent, cardSlot);
             yield break;
         }
     }

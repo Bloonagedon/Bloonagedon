@@ -95,7 +95,7 @@ namespace inscryption_multiplayer.Patches
                             }
                         };
 
-                        InscryptionNetworking.Connection.SendJson("CardPlacedByOpponentInQueue", cardInfo);
+                        InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardQueuedByOpponent, cardInfo);
                     }
 
                     yield return __instance.PlayCardOnSlot(card, lastSelectedSlot);
@@ -168,7 +168,7 @@ namespace inscryption_multiplayer.Patches
                 AssignedSlot.Card = card;
                 card.Slot = AssignedSlot;
                 card.OpponentCard = false;
-                InscryptionNetworking.Connection.SendJson("CardPlacedByOpponentInQueue", cardInfo);
+                InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardQueuedByOpponent, cardInfo);
             }
 
             card.RenderCard();
