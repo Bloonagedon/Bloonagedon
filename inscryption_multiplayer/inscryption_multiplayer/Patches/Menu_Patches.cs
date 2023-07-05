@@ -75,6 +75,8 @@ namespace inscryption_multiplayer
         [HarmonyPostfix]
         private static void CancelMultiplayer()
         {
+            if(SceneLoader.ActiveSceneName != SceneLoader.StartSceneName)
+                return;
             InscryptionNetworking.Connection.Leave();
             var ui = MultiplayerAssetHandler.MultiplayerSettingsUIInstance;
             ui.ResetMenu();
