@@ -11,7 +11,8 @@ namespace inscryption_multiplayer
     public class Menu_Patches
     {
         internal static bool JoiningLobby;
-        private static MenuController MenuControllerInstance;
+        internal static MenuController MenuControllerInstance;
+        internal static bool DeckSelection;
         
         [HarmonyPatch(typeof(StartScreenController), nameof(StartScreenController.Start))]
         [HarmonyPostfix]
@@ -95,7 +96,7 @@ namespace inscryption_multiplayer
         [HarmonyPrefix]
         private static bool ReplaceAscension(MenuController __instance, ref IEnumerator __result)
         {
-            if (Plugin.MultiplayerActive)
+            if (!DeckSelection && Plugin.MultiplayerActive)
             {
                 InscryptionNetworking.Connection.Leave();
                 SaveFile.IsAscension = false;
@@ -108,12 +109,37 @@ namespace inscryption_multiplayer
         
         [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.SwitchToScreen))]
         [HarmonyPrefix]
-        private static bool ExitAscensionAfterMatch(AscensionMenuScreens __instance)
+        private static bool ExitAscensionAfterMatch(AscensionMenuScreens __instance, AscensionMenuScreens.Screen screen)
         {
             if(Plugin.MultiplayerActive)
             {
+                if (DeckSelection && screen == AscensionMenuScreens.Screen.SelectChallenges)
+                {
+                    DeckSelection = false;
+                    AscensionSaveData.Data.NewRun(StarterDecksUtil.GetInfo(AscensionSaveData.Data.currentStarterDeck).cards);
+                    SaveManager.SaveToFile(false);
+                    MenuController.LoadGameFromMenu(false);
+                    Singleton<InteractionCursor>.Instance.SetHidden(true);
+                    Plugin.Log.LogInfo("started a game!");
+                    return false;
+                }
                 //Plugin.MultiplayerActive = false;
+                InscryptionNetworking.Connection.Leave();
                 __instance.ExitAscension();
+                return false;
+            }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.ConfigurePostGameScreens))]
+        [HarmonyPrefix]
+        private static bool ForceDeckSelection(AscensionMenuScreens __instance)
+        {
+            if (DeckSelection && Plugin.MultiplayerActive)
+            {
+                
+                __instance.StartCoroutine(
+                    __instance.ScreenSwitchSequence(AscensionMenuScreens.Screen.StarterDeckSelect));
                 return false;
             }
             return true;

@@ -107,11 +107,11 @@ namespace inscryption_multiplayer.Networking
                     Game_Patches.OpponentReady = false;
                     //starts a new run
                     //Singleton<AscensionMenuScreens>.Instance.TransitionToGame(true);
-                    AscensionSaveData.Data.NewRun(StarterDecksUtil.GetInfo(AscensionSaveData.Data.currentStarterDeck).cards);
-                    SaveManager.SaveToFile(false);
-                    MenuController.LoadGameFromMenu(false);
-                    Singleton<InteractionCursor>.Instance.SetHidden(true);
-                    Plugin.Log.LogInfo("started a game!");
+
+                    Menu_Patches.DeckSelection = true;
+                    Time.timeScale = 1;
+                    SceneLoader.Load("Ascension_Configure");
+                    
                     break;
 
                     //everything below here is for testing, it shouldn't be here for release or when testing it with another player
