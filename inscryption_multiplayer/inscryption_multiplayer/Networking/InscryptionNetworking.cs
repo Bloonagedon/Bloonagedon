@@ -108,7 +108,7 @@ namespace inscryption_multiplayer.Networking
                     //starts a new run
                     //Singleton<AscensionMenuScreens>.Instance.TransitionToGame(true);
 
-                    Menu_Patches.DeckSelection = true;
+                    Ascension_Patches.DeckSelection = true;
                     Time.timeScale = 1;
                     SceneLoader.Load("Ascension_Configure");
                     

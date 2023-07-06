@@ -56,6 +56,18 @@ namespace inscryption_multiplayer
             }
         }
 
+        [HarmonyPatch(typeof(MapGenerator), nameof(MapGenerator.ForceFirstNodeTraderForAscension))]
+        [HarmonyPrefix]
+        public static bool ForceTrader(ref bool __result, int rowIndex)
+        {
+            if (Plugin.MultiplayerActive)
+            {
+                __result = rowIndex == 1 && RunState.Run.regionTier == 0;
+                return false;
+            }
+            return true;
+        }
+
         private static NodeData CreateNodeData()
         {
             return Plugin.MultiplayerActive ? new CardBattleNodeData() : new TotemBattleNodeData();
