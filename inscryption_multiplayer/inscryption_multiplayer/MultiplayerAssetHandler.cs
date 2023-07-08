@@ -25,15 +25,18 @@ namespace inscryption_multiplayer
 
         public static GameObject MultiplayerSettingsUI;
         public static GameObject MultiplayerMenuCard;
+        public static GameObject MultiplayerErrorUI;
 
         public static InscryptionMultiplayerMenuUI MultiplayerSettingsUIInstance;
         public static GameObject MultiplayerMenuCardInstance;
+        public static GameObject MultiplayerErrorUIInstance;
 
         internal static void LoadBundle()
         {
             var bundle = AssetBundle.LoadFromFile(Path.Combine(Plugin.Directory, "mod.bundle"));
             MultiplayerSettingsUI = bundle.LoadAsset<GameObject>("MultiplayerSettingsUI");
             MultiplayerMenuCard = bundle.LoadAsset<GameObject>("MenuCard_Online");
+            MultiplayerErrorUI = bundle.LoadAsset<GameObject>("MultiplayerErrorUI");
             bundle.Unload(false);
         }
 

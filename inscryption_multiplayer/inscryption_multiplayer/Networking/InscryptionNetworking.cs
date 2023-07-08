@@ -23,6 +23,22 @@ namespace inscryption_multiplayer.Networking
         public const string ChangeSettings = "ChangeSettings";
     }
     
+    public class NetworkingError
+    {
+        public static NetworkingError OtherPlayerLeft = new("Other player left", false);
+        public static NetworkingError ConnectionLost = new("Connection lost", true);
+        public static NetworkingError GaveUp = new("Gave up", true);
+        
+        public readonly string Message;
+        public readonly bool OwnFault;
+        
+        public NetworkingError(string message, bool ownFault)
+        {
+            Message = message;
+            OwnFault = ownFault;
+        }
+    }
+    
     internal abstract class InscryptionNetworking : IDisposable
     {
         public const bool START_ALONE = false;
@@ -37,6 +53,7 @@ namespace inscryption_multiplayer.Networking
 
         internal bool AutoStart;
         internal string OtherPlayerName;
+        internal bool TransferredHost;
 
         internal bool PlayAgainstBot;
 

@@ -23,24 +23,21 @@ namespace inscryption_multiplayer
         
         [HarmonyPatch(typeof(MenuController), nameof(MenuController.TransitionToAscensionMenu))]
         [HarmonyPrefix]
-        private static bool ReplaceAscension(MenuController __instance, ref IEnumerator __result)
+        private static void ReplaceAscension(MenuController __instance, ref IEnumerator __result)
         {
             if (!DeckSelection && Plugin.MultiplayerActive)
             {
                 InscryptionNetworking.Connection.Leave();
                 SaveFile.IsAscension = false;
-                SaveManager.SaveToFile(false);
-                __result = __instance.TransitionToStartMenu();
-                return false;
+                Menu_Patches.MultiplayerError = NetworkingError.GaveUp;
             }
-            return true;
         }
         
         [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.SwitchToScreen))]
         [HarmonyPrefix]
         private static bool ExitAscensionAfterMatch(AscensionMenuScreens __instance, AscensionMenuScreens.Screen screen)
         {
-            if(Plugin.MultiplayerActive)
+            if(Menu_Patches.MultiplayerError != null || Plugin.MultiplayerActive)
             {
                 if (DeckSelection && screen == AscensionMenuScreens.Screen.SelectChallenges)
                 {
@@ -53,6 +50,7 @@ namespace inscryption_multiplayer
                     return false;
                 }
                 //Plugin.MultiplayerActive = false;
+                Menu_Patches.MultiplayerError = null;
                 InscryptionNetworking.Connection.Leave();
                 __instance.ExitAscension();
                 return false;

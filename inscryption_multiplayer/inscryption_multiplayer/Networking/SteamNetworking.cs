@@ -37,6 +37,7 @@ namespace inscryption_multiplayer.Networking
             lobbyCreated.Set(SteamMatchmaking.CreateLobby((ELobbyType)GameSettings.Current.LobbyType, 2));
         }
 
+        //Quickplay
         internal override void Join()
         {
             var requestLobbyList = SteamMatchmaking.RequestLobbyList();
@@ -56,11 +57,14 @@ namespace inscryption_multiplayer.Networking
         {
             if (Connected)
             {
+                if(OtherPlayerID != null && IsHost)
+                    SteamMatchmaking.SetLobbyOwner((CSteamID)LobbyID, (CSteamID)OtherPlayerID);
                 SteamMatchmaking.LeaveLobby((CSteamID)LobbyID);
                 LobbyID = null;
                 OtherPlayerID = null;
                 OtherPlayerName = null;
                 Connecting = false;
+                TransferredHost = false;
             }
         }
 
@@ -158,7 +162,7 @@ namespace inscryption_multiplayer.Networking
 
         private void OnLobbyChatUpdate(LobbyChatUpdate_t callback)
         {
-            if ((callback.m_rgfChatMemberStateChange & 0x0001) == 0x0001)
+            if ((callback.m_rgfChatMemberStateChange & 0x0001) == 0x0001)       //Other player joined
             {
                 OtherPlayerID = new CSteamID(callback.m_ulSteamIDMakingChange);
                 OtherPlayerName = SteamFriends.GetFriendPersonaName((CSteamID)OtherPlayerID);
@@ -171,6 +175,35 @@ namespace inscryption_multiplayer.Networking
                     ui.OtherPlayerText.text = $"OTHER PLAYER: {OtherPlayerName}";
                     ui.StartGameText.text = "START GAME";
                     ui.PlayWithBotButton.gameObject.SetActive(false);
+                }
+            }
+            else if ((callback.m_rgfChatMemberStateChange & 0x001E) != 0x0)    //Other player left
+            {
+                OtherPlayerID = null;
+                OtherPlayerName = null;
+                if (SceneLoader.ActiveSceneName == SceneLoader.StartSceneName)
+                {
+                    if(IsHost)
+                    {
+                        TransferredHost = true;
+                        var ui = MultiplayerAssetHandler.MultiplayerSettingsUIInstance;
+                        ui.OtherPlayerText.text = "OTHER PLAYER: ";
+                        ui.StartGameText.text = "INVITE PLAYER";
+                        ui.ChangeSettingsButton.gameObject.SetActive(true);
+                        ui.StartGameButton.gameObject.SetActive(true);
+                    }
+                    else
+                    {
+                        LobbyID = null;
+                        Connecting = false;
+                        Menu_Patches.LeaveGuest();
+                    }
+                }
+                else
+                {
+                    Leave();
+                    Menu_Patches.MultiplayerError = NetworkingError.OtherPlayerLeft;
+                    MenuController.ReturnToStartScreen();
                 }
             }
         }

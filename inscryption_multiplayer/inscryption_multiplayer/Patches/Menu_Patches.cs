@@ -11,6 +11,7 @@ namespace inscryption_multiplayer
     public class Menu_Patches
     {
         internal static bool JoiningLobby;
+        internal static NetworkingError MultiplayerError;
         internal static MenuController MenuControllerInstance;
 
         [HarmonyPatch(typeof(StartScreenController), nameof(StartScreenController.Start))]
@@ -19,13 +20,37 @@ namespace inscryption_multiplayer
         {
             MenuControllerInstance = ___menu;
             
-            var ui = UnityEngine.Object.Instantiate(MultiplayerAssetHandler.MultiplayerSettingsUI, ___menu.transform);
+            var ui = Object.Instantiate(MultiplayerAssetHandler.MultiplayerSettingsUI, ___menu.transform);
             var menuUI = ui.GetComponent<InscryptionMultiplayerMenuUI>();
             SetupMultiplayerMenuUI(menuUI);
             ui.SetActive(false);
             MultiplayerAssetHandler.MultiplayerSettingsUIInstance = menuUI;
             
-            var multiplayerMenuCard = UnityEngine.Object.Instantiate(MultiplayerAssetHandler.MultiplayerMenuCard,
+            var errorUIObject = Object.Instantiate(MultiplayerAssetHandler.MultiplayerErrorUI, ___menu.transform);
+            var errorUI = errorUIObject.GetComponent<ErrorUI>();
+            errorUI.ViewStatsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                AscensionMenuScreens.ReturningFromSuccessfulRun = !MultiplayerError.OwnFault;
+                AscensionMenuScreens.ReturningFromFailedRun = MultiplayerError.OwnFault;
+                Time.timeScale = 1;
+                SceneLoader.Load("Ascension_Configure");
+            };
+            errorUI.CloseButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                MultiplayerError = null;
+                errorUIObject.SetActive(false);
+                ___menu.SetCardsEnabled(true);
+            };
+            if (MultiplayerError != null)
+            {
+                ___menu.SetCardsEnabled(false);
+                errorUI.ErrorDescription.text = MultiplayerError.Message;
+                errorUIObject.SetActive(true);
+            }
+            else errorUIObject.SetActive(false);
+            MultiplayerAssetHandler.MultiplayerErrorUIInstance = errorUIObject;
+            
+            var multiplayerMenuCard = Object.Instantiate(MultiplayerAssetHandler.MultiplayerMenuCard,
                 ___menu.cards[0].transform.parent);
             multiplayerMenuCard.SetActive(true);
             multiplayerMenuCard.GetComponent<MenuCardProxy>().ProxyComponent();
@@ -60,6 +85,12 @@ namespace inscryption_multiplayer
                     __instance.StartCoroutine(TransitionToMultiplayer(__instance, card));
                     break;
             }
+        }
+        
+        public static void LeaveGuest()
+        {
+            CancelMultiplayer();
+            MenuControllerInstance.SetCardsEnabled(true);
         }
 
         private static IEnumerator TransitionToMultiplayer(MenuController controller, MenuCard card)
@@ -128,16 +159,12 @@ namespace inscryption_multiplayer
             };
             menu.LeaveLobbyButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
-                if (InscryptionNetworking.Connection.IsHost)
+                if (!InscryptionNetworking.Connection.TransferredHost && InscryptionNetworking.Connection.IsHost)
                 {
                     InscryptionNetworking.Connection.Leave();
                     menu.ResetMenu();
                 }
-                else
-                {
-                    CancelMultiplayer();
-                    MenuControllerInstance.SetCardsEnabled(true);
-                }
+                else LeaveGuest();
             };
             menu.ChangeSettingsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
