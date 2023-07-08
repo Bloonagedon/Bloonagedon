@@ -19,6 +19,7 @@ namespace inscryption_multiplayer.Networking
         public const string CardPlacedByOpponent = "CardPlacedByOpponent";
         public const string CardQueuedByOpponent = "CardPlacedByOpponentInQueue";
         public const string CardSacrificedByOpponent = "CardSacrificedByOpponent";
+        public const string EggPlaced = "EggPlaced";
         public const string ChangeOpponentTotem = "ChangeOpponentTotem";
         public const string ChangeSettings = "ChangeSettings";
     }
@@ -241,6 +242,10 @@ namespace inscryption_multiplayer.Networking
                         {
                             sacrificedCard.ExitBoard(0, new Vector3(0, 0, 0));
                         }
+                        break;
+                    
+                    case NetworkingMessage.EggPlaced:
+                        MultiplayerRunState.Run.EggQueue.Enqueue(wordList[1] == "1");
                         break;
                     
                     case NetworkingMessage.ChangeOpponentTotem:
