@@ -8,10 +8,15 @@ using UnityEngine;
 using Random = System.Random;
 
 namespace DiskCardGame
-{
+{    
     public class Multiplayer_Battle_Sequencer : SpecialBattleSequencer
     {
+        public static Multiplayer_Battle_Sequencer Current =>
+            (Multiplayer_Battle_Sequencer)Singleton<TurnManager>.Instance.SpecialSequencer;
+        
         public bool OpponentCardPlacePhase = false;
+
+        public Queue<IEnumerator> OpponentEvents = new();
         public override IEnumerator OpponentUpkeep()
         {
 
@@ -31,6 +36,7 @@ namespace DiskCardGame
             }
 
             OpponentCardPlacePhase = true;
+            OpponentEvents.Clear();
             string transformedMessage = Singleton<TextDisplayer>.Instance.ShowMessage("waiting for opponent to finish their turn");
             if (!string.IsNullOrEmpty(transformedMessage))
             {
@@ -41,7 +47,12 @@ namespace DiskCardGame
                     InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardQueuedByOpponent,
                         GlobalTriggerHandlerMultiplayer.TestCardInfo, true);
                 }
-                yield return new WaitUntil(() => OpponentCardPlacePhase == false);
+                while(OpponentCardPlacePhase)
+                {
+                    while (OpponentEvents.Count > 0)
+                        yield return OpponentEvents.Dequeue();
+                    yield return null;
+                }
                 if (Singleton<TextDisplayer>.Instance.textMesh.text == transformedMessage)
                 {
                     Singleton<TextDisplayer>.Instance.Clear();

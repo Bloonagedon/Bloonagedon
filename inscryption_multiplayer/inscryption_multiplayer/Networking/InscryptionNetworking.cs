@@ -21,6 +21,7 @@ namespace inscryption_multiplayer.Networking
         public const string CardSacrificedByOpponent = "CardSacrificedByOpponent";
         public const string EggPlaced = "EggPlaced";
         public const string ChangeOpponentTotem = "ChangeOpponentTotem";
+        public const string ItemUsed = "ItemUsed";
         public const string ChangeSettings = "ChangeSettings";
     }
     
@@ -149,7 +150,8 @@ namespace inscryption_multiplayer.Networking
                         break;
 
                     case NetworkingMessage.OpponentCardPlacePhaseEnded:
-                        ((Multiplayer_Battle_Sequencer)Singleton<TurnManager>.Instance.SpecialSequencer).OpponentCardPlacePhase = false;
+                        Multiplayer_Battle_Sequencer.Current.OpponentEvents.Enqueue(ToggleCardPlacePhase());
+                        //Multiplayer_Battle_Sequencer.Current.OpponentCardPlacePhase = false;
                         break;
 
                     case NetworkingMessage.CardPlacedByOpponent:
@@ -252,12 +254,23 @@ namespace inscryption_multiplayer.Networking
                         MultiplayerRunState.Run.OpponentTotem =
                             JsonConvert.DeserializeObject<TotemDefinition>(jsonString);
                         break;
+                    
+                    case NetworkingMessage.ItemUsed:
+                        Multiplayer_Battle_Sequencer.Current.OpponentEvents.Enqueue(
+                            Item_Sync.HandleOpponentItem(JsonConvert.DeserializeObject<MultiplayerItemData>(jsonString)));
+                        break;
 
                     case NetworkingMessage.ChangeSettings:
                         GameSettings.Current = JsonConvert.DeserializeObject<GameSettings>(jsonString);
                         break;
                 }
             }
+        }
+
+        private IEnumerator ToggleCardPlacePhase()
+        {
+            Multiplayer_Battle_Sequencer.Current.OpponentCardPlacePhase = false;
+            yield return null;
         }
 
         internal void Receive(bool selfMessage, byte[] message)

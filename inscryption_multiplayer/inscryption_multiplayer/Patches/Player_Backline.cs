@@ -127,10 +127,14 @@ namespace inscryption_multiplayer.Patches
 
         [HarmonyPatch(typeof(PlayerHand), nameof(PlayerHand.SelectSlotForCard))]
         [HarmonyPrefix]
-        public static bool SelectSlotForCardPrefix(ref PlayerHand __instance, PlayableCard card, out IEnumerator __result)
+        public static bool SelectSlotForCardPrefix(ref PlayerHand __instance, PlayableCard card, ref IEnumerator __result)
         {
-            __result = PatchedSelectSlotForCard(__instance, card);
-            return false;
+            if(Plugin.MultiplayerActive)
+            {
+                __result = PatchedSelectSlotForCard(__instance, card);
+                return false;
+            }
+            return true;
         }
 
         public static IEnumerator PatchedAssignCardToSlot(BoardManager __instance, PlayableCard card, CardSlot AssignedSlot, float transitionDuration = 0.1f, Action tweenCompleteCallback = null, bool resolveTriggers = true)
@@ -205,10 +209,14 @@ namespace inscryption_multiplayer.Patches
 
         [HarmonyPatch(typeof(BoardManager), nameof(BoardManager.AssignCardToSlot))]
         [HarmonyPrefix]
-        public static bool AssignCardToSlotPrefix(ref BoardManager __instance, out IEnumerator __result, PlayableCard card, CardSlot slot, float transitionDuration = 0.1f, Action tweenCompleteCallback = null, bool resolveTriggers = true)
+        public static bool AssignCardToSlotPrefix(ref BoardManager __instance, ref IEnumerator __result, PlayableCard card, CardSlot slot, float transitionDuration = 0.1f, Action tweenCompleteCallback = null, bool resolveTriggers = true)
         {
-            __result = PatchedAssignCardToSlot(__instance, card, slot, transitionDuration, tweenCompleteCallback, resolveTriggers);
-            return false;
+            if(Plugin.MultiplayerActive)
+            {
+                __result = PatchedAssignCardToSlot(__instance, card, slot, transitionDuration, tweenCompleteCallback, resolveTriggers);
+                return false;
+            }
+            return true;
         }
 
         public static IEnumerator PatchedResolveCardOnBoard(BoardManager __instance, PlayableCard card, CardSlot slot, float tweenLength = 0.1f, Action landOnBoardCallback = null, bool resolveTriggers = true)
@@ -246,25 +254,34 @@ namespace inscryption_multiplayer.Patches
 
         [HarmonyPatch(typeof(BoardManager), nameof(BoardManager.ResolveCardOnBoard))]
         [HarmonyPrefix]
-        public static bool ResolveCardOnBoardPrefix(ref BoardManager __instance, out IEnumerator __result, PlayableCard card, CardSlot slot, float tweenLength = 0.1f, Action landOnBoardCallback = null, bool resolveTriggers = true)
+        public static bool ResolveCardOnBoardPrefix(ref BoardManager __instance, ref IEnumerator __result, PlayableCard card, CardSlot slot, float tweenLength = 0.1f, Action landOnBoardCallback = null, bool resolveTriggers = true)
         {
-            __result = PatchedResolveCardOnBoard(__instance, card, slot, tweenLength, landOnBoardCallback, resolveTriggers);
-            return false;
+            if(Plugin.MultiplayerActive)
+            {
+                __result = PatchedResolveCardOnBoard(__instance, card, slot, tweenLength, landOnBoardCallback, resolveTriggers);
+                return false;
+            }
+            return true;
         }
 
         [HarmonyPatch(typeof(BoardManager), nameof(BoardManager.AvailableSacrificeValue), MethodType.Getter)]
         [HarmonyPostfix]
         public static void AvailableSacrificeValuePostfix(ref BoardManager __instance, ref int __result)
         {
-            List<CardSlot> AllPlayerSlotsPlusQueue = Singleton<BoardManager>.Instance.playerSlots;
-            AllPlayerSlotsPlusQueue.AddRange(PlayerQueueSlots);
-            __result = __instance.GetValueOfSacrifices(AllPlayerSlotsPlusQueue.FindAll((CardSlot x) => x.Card != null && x.Card.CanBeSacrificed));
+            if(Plugin.MultiplayerActive)
+            {
+                List<CardSlot> AllPlayerSlotsPlusQueue = Singleton<BoardManager>.Instance.playerSlots;
+                AllPlayerSlotsPlusQueue.AddRange(PlayerQueueSlots);
+                __result = __instance.GetValueOfSacrifices(AllPlayerSlotsPlusQueue.FindAll((CardSlot x) => x.Card != null && x.Card.CanBeSacrificed));
+            }
         }
 
         [HarmonyPatch(typeof(CardSlot), nameof(CardSlot.IsPlayerSlot), MethodType.Getter)]
         [HarmonyPrefix]
         public static bool IsPlayerSlotPrefix(ref CardSlot __instance, ref bool __result)
         {
+            if(!Plugin.MultiplayerActive)
+                return true;
             if (IsPlayerQueueSlot(__instance))
             {
                 __result = true;
@@ -280,6 +297,8 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static bool IndexPrefix(ref CardSlot __instance, ref int __result)
         {
+            if(!Plugin.MultiplayerActive)
+                return true;
             if (IsPlayerQueueSlot(__instance))
             {
                 __result = GetPlayerQueueSlotIndex(__instance);
@@ -302,6 +321,8 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPostfix]
         public static void Postfix(View view, ref ViewInfo __result)
         {
+            if(!Plugin.MultiplayerActive)
+                return;
             ViewInfo viewInfo = new ViewInfo();
             switch (view)
             {
@@ -340,6 +361,8 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static void AddPlayerBackline(BoardManager3D __instance)
         {
+            if(!Plugin.MultiplayerActive)
+                return;
             if (PlayerQueueSlots.Count == 0)
             {
 
