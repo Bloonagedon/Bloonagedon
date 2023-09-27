@@ -1,8 +1,8 @@
-using System.Collections;
 using DiskCardGame;
 using GBC;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
+using System.Collections;
 using UnityEngine;
 
 namespace inscryption_multiplayer
@@ -19,13 +19,13 @@ namespace inscryption_multiplayer
         private static void CreateMultiplayerUI(MenuController ___menu)
         {
             MenuControllerInstance = ___menu;
-            
+
             var ui = Object.Instantiate(MultiplayerAssetHandler.MultiplayerSettingsUI, ___menu.transform);
             var menuUI = ui.GetComponent<InscryptionMultiplayerMenuUI>();
             SetupMultiplayerMenuUI(menuUI);
             ui.SetActive(false);
             MultiplayerAssetHandler.MultiplayerSettingsUIInstance = menuUI;
-            
+
             var errorUIObject = Object.Instantiate(MultiplayerAssetHandler.MultiplayerErrorUI, ___menu.transform);
             var errorUI = errorUIObject.GetComponent<ErrorUI>();
             errorUI.ViewStatsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
@@ -49,7 +49,7 @@ namespace inscryption_multiplayer
             }
             else errorUIObject.SetActive(false);
             MultiplayerAssetHandler.MultiplayerErrorUIInstance = errorUIObject;
-            
+
             var multiplayerMenuCard = Object.Instantiate(MultiplayerAssetHandler.MultiplayerMenuCard,
                 ___menu.cards[0].transform.parent);
             multiplayerMenuCard.SetActive(true);
@@ -86,7 +86,7 @@ namespace inscryption_multiplayer
                     break;
             }
         }
-        
+
         public static void LeaveGuest()
         {
             CancelMultiplayer();
@@ -106,7 +106,7 @@ namespace inscryption_multiplayer
         [HarmonyPostfix]
         private static void CancelMultiplayer()
         {
-            if(SceneLoader.ActiveSceneName != SceneLoader.StartSceneName)
+            if (SceneLoader.ActiveSceneName != SceneLoader.StartSceneName)
                 return;
             InscryptionNetworking.Connection.Leave();
             var ui = MultiplayerAssetHandler.MultiplayerSettingsUIInstance;
@@ -129,6 +129,7 @@ namespace inscryption_multiplayer
                 GameSettings.Current = new GameSettings();
                 InscryptionNetworking.Connection.Join();
             };
+
             menu.HostButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 menu.TabGroup_JoinMode.SetActive(false);
@@ -137,7 +138,7 @@ namespace inscryption_multiplayer
                 menu.SaveSettingsText.text = "Start";
                 menu.TabGroup_Settings.SetActive(true);
             };
-            
+
             menu.QuickplayCancelButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 InscryptionNetworking.Connection.Leave();
@@ -148,7 +149,7 @@ namespace inscryption_multiplayer
             {
                 if (InscryptionNetworking.Connection.IsHost)
                 {
-                    if(menu.StartGameText.text == "INVITE PLAYER")
+                    if (menu.StartGameText.text == "INVITE PLAYER")
                         InscryptionNetworking.Connection.Invite();
                     else
                     {
@@ -157,6 +158,7 @@ namespace inscryption_multiplayer
                     }
                 }
             };
+
             menu.LeaveLobbyButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 if (!InscryptionNetworking.Connection.TransferredHost && InscryptionNetworking.Connection.IsHost)
@@ -166,17 +168,19 @@ namespace inscryption_multiplayer
                 }
                 else LeaveGuest();
             };
+
             menu.ChangeSettingsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 menu.TabGroup_Lobby.SetActive(false);
                 menu.SaveSettingsText.text = "SAVE";
                 menu.TabGroup_Settings.SetActive(true);
             };
+
             menu.PlayWithBotButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 InscryptionNetworking.Connection.StartGameWithBot();
             };
-            
+
             menu.LobbyAccessButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 GameSettings.Current.LobbyType = GameSettings.Current.LobbyType == LobbyAccess.InviteOnly
@@ -184,6 +188,7 @@ namespace inscryption_multiplayer
                     : LobbyAccess.InviteOnly;
                 UpdateSettingsVisuals();
             };
+
             menu.SettingsStartButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 menu.TabGroup_Settings.SetActive(false);
@@ -202,16 +207,19 @@ namespace inscryption_multiplayer
                 menu.StartGameButton.gameObject.SetActive(true);
                 menu.TabGroup_Lobby.SetActive(true);
             };
+
             menu.MapsPlusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 GameSettings.Current.MapsUsed = Mathf.Min(GameSettings.Current.MapsUsed + 1, 99999);
                 UpdateSettingsVisuals();
             };
+
             menu.MapsMinusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 GameSettings.Current.MapsUsed = Mathf.Max(GameSettings.Current.MapsUsed - 1, 1);
                 UpdateSettingsVisuals();
             };
+
             menu.ToggleTotemsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 GameSettings.Current.AllowTotems ^= true;

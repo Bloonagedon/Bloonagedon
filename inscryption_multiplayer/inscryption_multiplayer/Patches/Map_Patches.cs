@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using DiskCardGame;
+using HarmonyLib;
+using inscryption_multiplayer.Networking;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using HarmonyLib;
-using DiskCardGame;
-using inscryption_multiplayer.Networking;
 
 namespace inscryption_multiplayer
 {
@@ -15,15 +15,15 @@ namespace inscryption_multiplayer
         [HarmonyPostfix]
         public static void ApplyMultiplayerBattleSequencer(CardBattleNodeData __instance)
         {
-            if(Plugin.MultiplayerActive)
+            if (Plugin.MultiplayerActive)
                 __instance.specialBattleId = nameof(Multiplayer_Battle_Sequencer);
         }
-        
+
         [HarmonyPatch(typeof(MapGenerator), nameof(MapGenerator.ChooseSpecialNodeFromPossibilities))]
         [HarmonyPrefix]
         public static void RemoveBuildTotemNodeData(ref List<NodeData> possibilities)
         {
-            if(Plugin.MultiplayerActive && !GameSettings.Current.AllowTotems)
+            if (Plugin.MultiplayerActive && !GameSettings.Current.AllowTotems)
                 possibilities.RemoveAll(n => n is BuildTotemNodeData);
         }
 
@@ -41,18 +41,18 @@ namespace inscryption_multiplayer
             }
             return true;
         }
-        
+
         [HarmonyPatch(typeof(MapGenerator), nameof(MapGenerator.GenerateMap))]
         [HarmonyPrefix]
         public static void RemoveFinalBossNode(ref RegionData region)
         {
-            if(Plugin.MultiplayerActive && region == RegionProgression.Instance.ascensionFinalRegion)
+            if (Plugin.MultiplayerActive && region == RegionProgression.Instance.ascensionFinalRegion)
             {
-                var bossNode = region.predefinedNodes.nodeRows[region.predefinedNodes.nodeRows.Count-1][0];
+                var bossNode = region.predefinedNodes.nodeRows[region.predefinedNodes.nodeRows.Count - 1][0];
                 var newNode = new CardBattleNodeData();
                 newNode.position = bossNode.position;
                 newNode.specialBattleId = nameof(Multiplayer_Final_Battle_Sequencer);
-                region.predefinedNodes.nodeRows[region.predefinedNodes.nodeRows.Count-1][0] = newNode;
+                region.predefinedNodes.nodeRows[region.predefinedNodes.nodeRows.Count - 1][0] = newNode;
             }
         }
 

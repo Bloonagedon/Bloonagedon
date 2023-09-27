@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using static inscryption_multiplayer.Utils;
 
 namespace inscryption_multiplayer.Networking
 {
@@ -19,28 +20,29 @@ namespace inscryption_multiplayer.Networking
         public const string CardPlacedByOpponent = "CardPlacedByOpponent";
         public const string CardQueuedByOpponent = "CardPlacedByOpponentInQueue";
         public const string CardSacrificedByOpponent = "CardSacrificedByOpponent";
+        public const string CardsInOpponentQueueMoved = "CardsInOpponentQueueMoved";
         public const string EggPlaced = "EggPlaced";
         public const string ChangeOpponentTotem = "ChangeOpponentTotem";
         public const string ItemUsed = "ItemUsed";
         public const string ChangeSettings = "ChangeSettings";
     }
-    
+
     public class NetworkingError
     {
         public static NetworkingError OtherPlayerLeft = new("Other player left", false);
         public static NetworkingError ConnectionLost = new("Connection lost", true);
         public static NetworkingError GaveUp = new("Gave up", true);
-        
+
         public readonly string Message;
         public readonly bool OwnFault;
-        
+
         public NetworkingError(string message, bool ownFault)
         {
             Message = message;
             OwnFault = ownFault;
         }
     }
-    
+
     internal abstract class InscryptionNetworking : IDisposable
     {
         public const bool START_ALONE = false;
@@ -74,6 +76,7 @@ namespace inscryption_multiplayer.Networking
         {
             if (bypassCheck)
                 message = "bypasscheck " + message;
+
             byte[] messageBytes = Encoding.UTF8.GetBytes(message);
             byte[] jsonUtf8Bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(serializedClass));
 
@@ -90,6 +93,7 @@ namespace inscryption_multiplayer.Networking
         {
             if (bypassCheck)
                 message = "bypasscheck " + message;
+
             Send(Encoding.UTF8.GetBytes(message));
         }
 
@@ -98,7 +102,7 @@ namespace inscryption_multiplayer.Networking
             if (message.StartsWith("bypasscheck "))
             {
                 message = message.Substring(12);
-                if (PlayAgainstBot)
+                if (PlayAgainstBot || SteamNetworking.START_ALONE)
                     selfMessage = false;
             }
             string jsonString = null;
@@ -130,7 +134,7 @@ namespace inscryption_multiplayer.Networking
                     Ascension_Patches.DeckSelection = true;
                     Time.timeScale = 1;
                     SceneLoader.Load("Ascension_Configure");
-                    
+
                     break;
 
                     //everything below here is for testing, it shouldn't be here for release or when testing it with another player
@@ -151,47 +155,29 @@ namespace inscryption_multiplayer.Networking
 
                     case NetworkingMessage.OpponentCardPlacePhaseEnded:
                         Multiplayer_Battle_Sequencer.Current.OpponentEvents.Enqueue(ToggleCardPlacePhase());
-                        //Multiplayer_Battle_Sequencer.Current.OpponentCardPlacePhase = false;
                         break;
 
                     case NetworkingMessage.CardPlacedByOpponent:
                         CardInfoMultiplayer cardInfo = JsonConvert.DeserializeObject<CardInfoMultiplayer>(jsonString);
-                        CardSlot placedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardInfo.slot.index && x.IsPlayerSlot == cardInfo.slot.isPlayerSlot);
+                        CardSlot placedSlot = MPInfoToSlot(cardInfo.slot);
                         if (placedSlot.Card != null)
                         {
                             placedSlot.Card.ExitBoard(0, new Vector3(0, 0, 0));
                         }
 
-                        var internalCardInfo = CardLoader.GetCardByName(cardInfo.name);
-                        internalCardInfo.Mods = cardInfo.mods ?? new List<CardModificationInfo>();
-
-                        PlayableCard playableCard = CardSpawner.SpawnPlayableCard(internalCardInfo);
-                        playableCard.TemporaryMods = cardInfo.temporaryMods ?? new List<CardModificationInfo>();
-                        
-                        playableCard.OnStatsChanged();
-
-                        if (!cardInfo.slot.isPlayerSlot)
-                        {
-                            playableCard.SetIsOpponentCard(true);
-                            Singleton<TurnManager>.Instance.Opponent.ModifySpawnedCard(playableCard);
-                        }
-
-                        Singleton<BoardManager>.Instance.StartCoroutine(Utils.CallbackRoutine(
-                            Singleton<BoardManager>.Instance.TransitionAndResolveCreatedCard(
-                                playableCard,
+                        Singleton<BoardManager>.Instance.StartCoroutine(
+                            Singleton<BoardManager>.Instance.ResolveCardOnBoard(
+                                MPInfoToCard(cardInfo),
                                 placedSlot,
                                 0.1f,
-                                false
-                            ), () =>
-                            {
-                                if (PlayAgainstBot)
-                                    Send(NetworkingMessage.OpponentCardPlacePhaseEnded, true);
-                            }));
+                                null,
+                                true
+                            ));
                         break;
 
                     case NetworkingMessage.CardQueuedByOpponent:
                         CardInfoMultiplayer cardInfoQueue = JsonConvert.DeserializeObject<CardInfoMultiplayer>(jsonString);
-                        CardSlot slotToQueueFor = Singleton<BoardManager>.Instance.opponentSlots.FirstOrDefault(x => x.Index == cardInfoQueue.slot.index);
+                        CardSlot slotToQueueFor = MPInfoToSlot(cardInfoQueue.slot);
 
                         if (slotToQueueFor == null)
                         {
@@ -205,23 +191,11 @@ namespace inscryption_multiplayer.Networking
                             cardInQueue.ExitBoard(0, new Vector3(0, 0, 0));
                         }
 
-                        var internalCardInfoQueue = CardLoader.GetCardByName(cardInfoQueue.name);
-                        internalCardInfoQueue.Mods = cardInfoQueue.mods ?? new List<CardModificationInfo>();
-
                         Singleton<ViewManager>.Instance.SwitchToView(Singleton<BoardManager>.Instance.QueueView, false, false);
 
-                        PlayableCard playableCardQueue = Singleton<Opponent>.Instance.CreateCard(internalCardInfoQueue);
-                        playableCardQueue.TemporaryMods = cardInfoQueue.temporaryMods ?? new List<CardModificationInfo>();
-
-                        playableCardQueue.OnStatsChanged();
-
+                        PlayableCard playableCardQueue = MPInfoToCard(cardInfoQueue);
                         Singleton<BoardManager>.Instance.QueueCardForSlot(playableCardQueue, slotToQueueFor, 0.25f);
                         Singleton<Opponent>.Instance.Queue.Add(playableCardQueue);
-
-                        if (PlayAgainstBot)
-                        {
-                            Send(NetworkingMessage.OpponentCardPlacePhaseEnded, true);
-                        }
                         break;
 
                     case NetworkingMessage.CardSacrificedByOpponent:
@@ -233,7 +207,7 @@ namespace inscryption_multiplayer.Networking
                         }
                         else
                         {
-                            CardSlot sacrificedSlot = Singleton<BoardManager>.Instance.AllSlots.First(x => x.Index == cardSlot.index && x.IsPlayerSlot == cardSlot.isPlayerSlot);
+                            CardSlot sacrificedSlot = MPInfoToSlot(cardSlot);
                             if (sacrificedSlot.Card == null)
                             {
                                 break;
@@ -242,19 +216,39 @@ namespace inscryption_multiplayer.Networking
                         }
                         if (sacrificedCard != null)
                         {
-                            sacrificedCard.ExitBoard(0, new Vector3(0, 0, 0));
+                            sacrificedCard.Anim.PlaySacrificeSound();
+                            if (sacrificedCard.HasAbility(Ability.Sacrificial))
+                            {
+                                sacrificedCard.Anim.SetSacrificeHoverMarkerShown(false);
+                                sacrificedCard.Anim.SetMarkedForSacrifice(false);
+                                sacrificedCard.Anim.PlaySacrificeParticles();
+                                ProgressionData.SetAbilityLearned(Ability.Sacrificial);
+                                if (sacrificedCard.TriggerHandler.RespondsToTrigger(Trigger.Sacrifice, Array.Empty<object>()))
+                                {
+                                    Singleton<BoardManager>.Instance.StartCoroutine(sacrificedCard.TriggerHandler.OnTrigger(Trigger.Sacrifice, Array.Empty<object>()));
+                                }
+                            }
+                            else
+                            {
+                                sacrificedCard.Anim.DeactivateSacrificeHoverMarker();
+                                if (sacrificedCard.TriggerHandler.RespondsToTrigger(Trigger.Sacrifice, Array.Empty<object>()))
+                                {
+                                    Singleton<BoardManager>.Instance.StartCoroutine(sacrificedCard.TriggerHandler.OnTrigger(Trigger.Sacrifice, Array.Empty<object>()));
+                                }
+                                sacrificedCard.ExitBoard(0, new Vector3(0, 0, 0));
+                            }
                         }
                         break;
-                    
+
                     case NetworkingMessage.EggPlaced:
                         MultiplayerRunState.Run.EggQueue.Enqueue(wordList[1] == "1");
                         break;
-                    
+
                     case NetworkingMessage.ChangeOpponentTotem:
                         MultiplayerRunState.Run.OpponentTotem =
                             JsonConvert.DeserializeObject<TotemDefinition>(jsonString);
                         break;
-                    
+
                     case NetworkingMessage.ItemUsed:
                         Multiplayer_Battle_Sequencer.Current.OpponentEvents.Enqueue(
                             Item_Sync.HandleOpponentItem(JsonConvert.DeserializeObject<MultiplayerItemData>(jsonString)));
@@ -263,10 +257,13 @@ namespace inscryption_multiplayer.Networking
                     case NetworkingMessage.ChangeSettings:
                         GameSettings.Current = JsonConvert.DeserializeObject<GameSettings>(jsonString);
                         break;
+
+                    case NetworkingMessage.CardsInOpponentQueueMoved:
+                        Singleton<BoardManager>.Instance.StartCoroutine(PlayCardsInOpponentQueue());
+                        break;
                 }
             }
         }
-
         private IEnumerator ToggleCardPlacePhase()
         {
             Multiplayer_Battle_Sequencer.Current.OpponentCardPlacePhase = false;
@@ -294,6 +291,12 @@ namespace inscryption_multiplayer.Networking
         internal void SendSettings()
         {
             SendJson(NetworkingMessage.ChangeSettings, GameSettings.Current);
+        }
+
+        private static IEnumerator CallbackRoutine(IEnumerator coroutine, Action callback)
+        {
+            yield return coroutine;
+            callback();
         }
 
         ~InscryptionNetworking()

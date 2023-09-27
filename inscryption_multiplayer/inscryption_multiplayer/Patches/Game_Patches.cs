@@ -1,8 +1,11 @@
 ﻿using DiskCardGame;
+using GBC;
 using HarmonyLib;
+using inscryption_multiplayer.Networking;
 using inscryption_multiplayer.Patches;
 using System.Collections;
 using UnityEngine;
+using static inscryption_multiplayer.Utils;
 
 namespace inscryption_multiplayer
 {
@@ -54,15 +57,16 @@ namespace inscryption_multiplayer
         [HarmonyPostfix]
         public static void WaitForOpponent(ref IEnumerator __result)
         {
-            if(Plugin.MultiplayerActive)
+            if (Plugin.MultiplayerActive)
                 __result = Utils.JoinCoroutines(__result, Utils.CallbackRoutine(Multiplayer_Battle_Sequencer.WaitForOpponent(), Totem_Sync.ApplyTotem));
         }
+
 
         [HarmonyPatch(typeof(TurnManager), nameof(TurnManager.OpponentTurn))]
         [HarmonyPrefix]
         public static bool Prefix(ref TurnManager __instance, ref IEnumerator __result)
         {
-            if(Plugin.MultiplayerActive)
+            if (Plugin.MultiplayerActive)
             {
                 __result = PatchedOpponentTurn(__instance);
                 return false;
@@ -76,7 +80,9 @@ namespace inscryption_multiplayer
         public static bool SlotAttackSequencePrefix(CardSlot slot)
         {
             if (Plugin.MultiplayerActive && Player_Backline.IsPlayerQueueSlot(slot))
+            {
                 return false;
+            }
             return true;
         }
 
@@ -92,6 +98,22 @@ namespace inscryption_multiplayer
         public static bool ExhaustedSequencePrefix()
         {
             return !Plugin.MultiplayerActive;
+        }
+
+        [HarmonyPatch(typeof(OptionsUI), nameof(OptionsUI.OnRunInBackgroundToggled))]
+        [HarmonyPrefix]
+        public static bool OnRunInBackgroundToggledPrefix(bool on)
+        {
+            if (Plugin.MultiplayerActive)
+            {
+                GameOptions.Options.runInBackground = on;
+                Application.runInBackground = true;
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
     }
 }

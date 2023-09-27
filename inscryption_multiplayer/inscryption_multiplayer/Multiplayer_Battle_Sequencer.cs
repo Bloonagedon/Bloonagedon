@@ -4,34 +4,29 @@ using inscryption_multiplayer.Patches;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Random = System.Random;
 
 namespace DiskCardGame
-{    
+{
     public class Multiplayer_Battle_Sequencer : SpecialBattleSequencer
     {
         public static Multiplayer_Battle_Sequencer Current =>
             (Multiplayer_Battle_Sequencer)Singleton<TurnManager>.Instance.SpecialSequencer;
-        
+
         public bool OpponentCardPlacePhase = false;
 
         public Queue<IEnumerator> OpponentEvents = new();
+
         public override IEnumerator OpponentUpkeep()
         {
-
             foreach (PlayableCard card in Singleton<Opponent>.Instance.Queue)
             {
                 if (InscryptionNetworking.Connection.PlayAgainstBot)
                 {
                     yield return new WaitForSecondsRealtime(1f);
-                    InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardPlacedByOpponent,
-                        GlobalTriggerHandlerMultiplayer.TestCardInfoWithSpecificSlot(card.QueuedSlot.Index), true);
-                }
-
-                if (card.QueuedSlot.Card == null)
-                {
-                    card.ExitBoard(0, new Vector3(0, 0, 0));
+                    InscryptionNetworking.Connection.Send(NetworkingMessage.CardsInOpponentQueueMoved, true);
                 }
             }
 
@@ -47,12 +42,16 @@ namespace DiskCardGame
                     InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardQueuedByOpponent,
                         GlobalTriggerHandlerMultiplayer.TestCardInfo, true);
                 }
-                while(OpponentCardPlacePhase)
+                else
                 {
-                    while (OpponentEvents.Count > 0)
-                        yield return OpponentEvents.Dequeue();
-                    yield return null;
+                    while (OpponentCardPlacePhase)
+                    {
+                        while (OpponentEvents.Count > 0)
+                            yield return OpponentEvents.Dequeue();
+                        yield return null;
+                    }
                 }
+
                 if (Singleton<TextDisplayer>.Instance.textMesh.text == transformedMessage)
                 {
                     Singleton<TextDisplayer>.Instance.Clear();

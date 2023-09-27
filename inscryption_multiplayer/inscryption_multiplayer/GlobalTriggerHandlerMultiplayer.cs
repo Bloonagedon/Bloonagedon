@@ -1,26 +1,14 @@
 ﻿using DiskCardGame;
+using inscryption_multiplayer;
 using inscryption_multiplayer.Networking;
 using inscryption_multiplayer.Patches;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static inscryption_multiplayer.Utils;
 
 namespace inscryption_multiplayer
 {
-    public class CardInfoMultiplayer
-    {
-        public string name { get; set; }
-        public List<CardModificationInfo> mods { get; set; }
-        public List<CardModificationInfo> temporaryMods { get; set; }
-        public CardSlotMultiplayer slot { get; set; }
-    }
-    public class CardSlotMultiplayer
-    {
-        public bool isPlayerSlot { get; set; }
-        public int index { get; set; }
-        public bool isQueueSlot { get; set; }
-    }
-
     public class GlobalTriggerHandlerMultiplayer : NonCardTriggerReceiver
     {
         private static readonly CardInfoMultiplayer _TestCardInfo = new()
@@ -62,18 +50,6 @@ namespace inscryption_multiplayer
 
         public override IEnumerator OnOtherCardResolve(PlayableCard otherCard)
         {
-            CardInfoMultiplayer cardInfo = new CardInfoMultiplayer
-            {
-                temporaryMods = otherCard.TemporaryMods,
-                mods = otherCard.Info.Mods,
-                name = otherCard.Info.name,
-                slot = new CardSlotMultiplayer
-                {
-                    index = otherCard.Slot.Index,
-                    isPlayerSlot = !otherCard.Slot.IsPlayerSlot
-                }
-            };
-            InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardPlacedByOpponent, cardInfo);
             yield break;
         }
 
@@ -84,13 +60,25 @@ namespace inscryption_multiplayer
 
         public override IEnumerator OnOtherCardDie(PlayableCard card, CardSlot deathSlot, bool fromCombat, PlayableCard killer)
         {
-            CardSlotMultiplayer cardSlot = new CardSlotMultiplayer
+            InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardSacrificedByOpponent, SlotToMPInfo(deathSlot));
+            yield break;
+        }
+
+        public override bool RespondsToTurnEnd(bool playerTurnEnd)
+        {
+            return true;
+        }
+
+        public override IEnumerator OnTurnEnd(bool playerTurnEnd)
+        {
+            if (playerTurnEnd)
             {
-                index = deathSlot.Index,
-                isPlayerSlot = !deathSlot.IsPlayerSlot,
-                isQueueSlot = Player_Backline.IsPlayerQueueSlot(deathSlot)
-            };
-            InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardSacrificedByOpponent, cardSlot);
+                PlayCardsInPlayerQueue();
+            }
+            else
+            {
+                InscryptionNetworking.Connection.Send(NetworkingMessage.CardsInOpponentQueueMoved);
+            }
             yield break;
         }
     }

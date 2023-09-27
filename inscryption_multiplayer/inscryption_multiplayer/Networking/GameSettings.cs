@@ -7,11 +7,11 @@ namespace inscryption_multiplayer.Networking
         InviteOnly = 0,
         FriendsOnly = 1
     }
-    
+
     public class GameSettings
     {
         [JsonIgnore] public static GameSettings Current = new();
-        
+
         public LobbyAccess LobbyType = LobbyAccess.FriendsOnly;
         public int MapsUsed = 1;
         public bool AllowTotems;

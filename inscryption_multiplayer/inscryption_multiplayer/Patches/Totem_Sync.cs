@@ -1,7 +1,7 @@
-using System.Collections;
 using DiskCardGame;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
+using System.Collections;
 using UnityEngine;
 
 namespace inscryption_multiplayer
@@ -15,7 +15,7 @@ namespace inscryption_multiplayer
         {
             __result = Utils.CallbackRoutine(__result, () =>
             {
-                if(RunState.Run.totems.Count > 0)
+                if (RunState.Run.totems.Count > 0)
                     InscryptionNetworking.Connection.SendJson(NetworkingMessage.ChangeOpponentTotem, RunState.Run.totems[0]);
             });
         }
@@ -34,7 +34,7 @@ namespace inscryption_multiplayer
             opponentTotem.bottom.effectParams.ability = MultiplayerRunState.Run.OpponentTotem.ability;
             encounter.opponentTotem = opponentTotem;
         }
-        
+
         public static void ApplyTotem()
         {
             if (MultiplayerRunState.Run.OpponentTotem != null)

@@ -1,10 +1,10 @@
+using DiskCardGame;
+using HarmonyLib;
+using inscryption_multiplayer.Networking;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
-using HarmonyLib;
-using DiskCardGame;
-using inscryption_multiplayer.Networking;
 
 namespace inscryption_multiplayer
 {
@@ -12,15 +12,15 @@ namespace inscryption_multiplayer
     public class Ascension_Patches
     {
         public static bool DeckSelection;
-        
+
         [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.LoadFromFile))]
         [HarmonyPostfix]
         private static void SetAscension()
         {
-            if(Plugin.MultiplayerActive)
+            if (Plugin.MultiplayerActive)
                 SaveFile.IsAscension = true;
         }
-        
+
         [HarmonyPatch(typeof(MenuController), nameof(MenuController.TransitionToAscensionMenu))]
         [HarmonyPrefix]
         private static void ReplaceAscension(MenuController __instance, ref IEnumerator __result)
@@ -32,12 +32,12 @@ namespace inscryption_multiplayer
                 Menu_Patches.MultiplayerError = NetworkingError.GaveUp;
             }
         }
-        
+
         [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.SwitchToScreen))]
         [HarmonyPrefix]
         private static bool ExitAscensionAfterMatch(AscensionMenuScreens __instance, AscensionMenuScreens.Screen screen)
         {
-            if(Menu_Patches.MultiplayerError != null || Plugin.MultiplayerActive)
+            if (Menu_Patches.MultiplayerError != null || Plugin.MultiplayerActive)
             {
                 if (DeckSelection && screen == AscensionMenuScreens.Screen.SelectChallenges)
                 {
@@ -57,7 +57,7 @@ namespace inscryption_multiplayer
             }
             return true;
         }
-        
+
         [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.ConfigurePostGameScreens))]
         [HarmonyPrefix]
         private static bool ForceDeckSelection(AscensionMenuScreens __instance)
@@ -95,10 +95,10 @@ namespace inscryption_multiplayer
         [HarmonyPrefix]
         private static void DisableRunStats(ref RunState ___currentRun)
         {
-            if(Plugin.MultiplayerActive)
+            if (Plugin.MultiplayerActive)
                 ___currentRun = null;
         }
-        
+
         private static int GetNumRunsSinceReachedFirstBoss(int value)
         {
             return Plugin.MultiplayerActive ? 0 : value;

@@ -1,8 +1,14 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
+using DiskCardGame;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
+using inscryption_multiplayer.Patches;
+using Newtonsoft.Json;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
 
 namespace inscryption_multiplayer
 {
@@ -41,6 +47,11 @@ namespace inscryption_multiplayer
         public void OnApplicationQuit()
         {
             InscryptionNetworking.Connection.Dispose();
+        }
+
+        public void OnGUI()
+        {
+            DebugUI.OnGUI();
         }
     }
 }
