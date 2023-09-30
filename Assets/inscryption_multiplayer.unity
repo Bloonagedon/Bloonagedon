@@ -363,11 +363,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: MultiplayerSettingsUI
       objectReference: {fileID: 0}
-    - target: {fileID: 5431247655204032273, guid: 621aa3c89530a9f43840b37eeeec779e,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 621aa3c89530a9f43840b37eeeec779e, type: 3}
 --- !u!1001 &1613915308682773857
