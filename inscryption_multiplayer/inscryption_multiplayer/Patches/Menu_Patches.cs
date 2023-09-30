@@ -192,6 +192,7 @@ namespace inscryption_multiplayer
             menu.SettingsStartButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 menu.TabGroup_Settings.SetActive(false);
+                menu.ResetSettingsPages();
                 if (InscryptionNetworking.Connection.Connected)
                 {
                     InscryptionNetworking.Connection.UpdateSettings();
@@ -208,6 +209,9 @@ namespace inscryption_multiplayer
                 menu.TabGroup_Lobby.SetActive(true);
             };
 
+            menu.PreviousPageButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ => menu.AdvanceSettingsPage(-1);
+            menu.NextPageButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ => menu.AdvanceSettingsPage(1);
+            
             menu.MapsPlusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
             {
                 GameSettings.Current.MapsUsed = Mathf.Min(GameSettings.Current.MapsUsed + 1, 99999);
@@ -225,6 +229,62 @@ namespace inscryption_multiplayer
                 GameSettings.Current.AllowTotems ^= true;
                 UpdateSettingsVisuals();
             };
+            
+            menu.ToggleItemsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.AllowItems ^= true;
+                UpdateSettingsVisuals();
+            };
+            
+            menu.ScaleSizePlusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.ScaleSize = Mathf.Min(GameSettings.Current.ScaleSize + 1, 10);
+                UpdateSettingsVisuals();
+            };
+
+            menu.ScaleSizeMinusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.ScaleSize = Mathf.Max(GameSettings.Current.ScaleSize - 1, 5);
+                UpdateSettingsVisuals();
+            };
+            
+            menu.NodeWidthPlusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.NodeWidth = Mathf.Min(GameSettings.Current.NodeWidth + 1, 5);
+                UpdateSettingsVisuals();
+            };
+
+            menu.NodeWidthMinusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.NodeWidth = Mathf.Max(GameSettings.Current.NodeWidth - 1, 1);
+                UpdateSettingsVisuals();
+            };
+            
+            menu.NodeLengthPlusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.NodeLength = Mathf.Min(GameSettings.Current.NodeLength + 1, 100);
+                UpdateSettingsVisuals();
+            };
+
+            menu.NodeLengthMinusButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.NodeLength = Mathf.Max(GameSettings.Current.NodeLength - 1, 2);
+                UpdateSettingsVisuals();
+            };
+
+            menu.ToggleBackrowsButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.AllowBackrows ^= true;
+                GameSettings.Current.AllowSacrificeOnFrontrows = !GameSettings.Current.AllowBackrows || GameSettings.Current.PreviousAllowSecrificeOnFrontrows;
+                UpdateSettingsVisuals();
+            };
+
+            menu.ToggleFrontrowSacrificesButton.GetInternalComponent<GenericUIButton>().OnButtonUp = _ =>
+            {
+                GameSettings.Current.AllowSacrificeOnFrontrows ^= true;
+                GameSettings.Current.PreviousAllowSecrificeOnFrontrows = GameSettings.Current.AllowSacrificeOnFrontrows;
+                UpdateSettingsVisuals();
+            };
         }
 
         private static void UpdateSettingsVisuals()
@@ -235,6 +295,24 @@ namespace inscryption_multiplayer
                 : "FRIENDS CAN JOIN";
             ui.MapsNumberText.text = $"{GameSettings.Current.MapsUsed} + 1";
             ui.TotemSettingText.text = GameSettings.Current.AllowTotems ? "TOTEMS ENABLED" : "TOTEMS DISABLED";
+            ui.ItemSettingText.text = GameSettings.Current.AllowItems ? "ITEMS ENABLED" : "ITEMS DISABLED";
+            ui.ScaleSizeText.text = GameSettings.Current.ScaleSize.ToString();
+            ui.NodeWidthText.text = GameSettings.Current.NodeWidth.ToString();
+            ui.NodeLengthText.text = GameSettings.Current.NodeLength.ToString();
+            if (GameSettings.Current.AllowBackrows)
+            {
+                ui.BackrowsSettingText.text = "BACKROWS ENABLED";
+                ui.ToggleFrontrowSacrificesButton.gameObject.SetActive(true);
+            }
+            else
+            {
+                ui.BackrowsSettingText.text = "BACKROWS DISABLED";
+                ui.ToggleFrontrowSacrificesButton.gameObject.SetActive(false);
+            }
+
+            ui.SacrificeSettingText.text = GameSettings.Current.AllowSacrificeOnFrontrows
+                ? "FRONT SACRIFICES ENABLED"
+                : "FRONT SACRIFICES DISABLED";
         }
     }
 }

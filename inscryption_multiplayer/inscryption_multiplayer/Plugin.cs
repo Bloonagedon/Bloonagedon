@@ -4,6 +4,7 @@ using DiskCardGame;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
 using inscryption_multiplayer.Patches;
+using InscryptionAPI.Card;
 using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
@@ -37,11 +38,31 @@ namespace inscryption_multiplayer
 
             Directory = Path.GetDirectoryName(base.Info.Location);
             MultiplayerAssetHandler.LoadBundle();
+
+            CardAppearanceBehaviour.Appearance LifeCounterApp =
+                CardAppearanceBehaviourManager.Add(
+                    PluginGuid,
+                    "LifeCounterApp",
+                    typeof(LifeCounter_Patches.LifeCounterBackground)).Id;
+
+            LifeCounter_Patches.LifeCounterCardInfo = CardManager.New("multiplayer_scale_counter", "Life_Counter", "0", 0, 0);
+            LifeCounter_Patches.LifeCounterCardInfo.AddAppearances(LifeCounterApp);
+            LifeCounter_Patches.LifeCounterCardInfo.Mods = new List<CardModificationInfo>() { LifeCounter_Patches.nameReplacementMod };
+            LifeCounter_Patches.LifeCounterCardInfo.hideAttackAndHealth = true;
         }
 
         public void Update()
         {
             InscryptionNetworking.Connection.Update();
+
+            if (LifeManager.m_Instance != null && LifeCounter_Patches.LifeCounterObject != null)
+            {
+                if (LifeManager.m_Instance.Balance != LifeCounter_Patches.OldBalance)
+                {
+                    LifeCounter_Patches.OldBalance = LifeManager.Instance.Balance;
+                    LifeCounter_Patches.UpdateLifeCounter();
+                }
+            }
         }
 
         public void OnApplicationQuit()

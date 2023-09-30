@@ -21,9 +21,9 @@ namespace DiskCardGame
 
         public override IEnumerator OpponentUpkeep()
         {
-            foreach (PlayableCard card in Singleton<Opponent>.Instance.Queue)
+            if (GameSettings.Current.AllowBackrows && InscryptionNetworking.Connection.PlayAgainstBot)
             {
-                if (InscryptionNetworking.Connection.PlayAgainstBot)
+                foreach (PlayableCard card in Singleton<Opponent>.Instance.Queue)
                 {
                     yield return new WaitForSecondsRealtime(1f);
                     InscryptionNetworking.Connection.Send(NetworkingMessage.CardsInOpponentQueueMoved, true);
@@ -39,8 +39,10 @@ namespace DiskCardGame
                 if (InscryptionNetworking.Connection.PlayAgainstBot)
                 {
                     yield return new WaitForSecondsRealtime(1f);
-                    InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardQueuedByOpponent,
-                        GlobalTriggerHandlerMultiplayer.TestCardInfo, true);
+                    InscryptionNetworking.Connection.SendJson(GameSettings.Current.AllowBackrows ?
+                                                              NetworkingMessage.CardQueuedByOpponent :
+                                                              NetworkingMessage.CardPlacedByOpponent,
+                                                              GlobalTriggerHandlerMultiplayer.TestCardInfo, true);
                 }
                 else
                 {
@@ -73,17 +75,20 @@ namespace DiskCardGame
 
         public override IEnumerator PlayerUpkeep()
         {
-            Singleton<ViewManager>.Instance.SwitchToView(View.Board, false, true);
-            for (int i = 0; i < Player_Backline.PlayerQueueSlots.Count; i++)
+            if (GameSettings.Current.AllowBackrows)
             {
-                PlayableCard card = Player_Backline.PlayerQueueSlots[i].Card;
-                CardSlot newSlot = Singleton<BoardManager>.Instance.playerSlots[i];
-                if (card != null && newSlot.Card == null)
+                Singleton<ViewManager>.Instance.SwitchToView(View.Board, false, true);
+                for (int i = 0; i < Player_Backline.PlayerQueueSlots.Count; i++)
                 {
-                    yield return Singleton<BoardManager>.Instance.ResolveCardOnBoard(card, newSlot);
+                    PlayableCard card = Player_Backline.PlayerQueueSlots[i].Card;
+                    CardSlot newSlot = Singleton<BoardManager>.Instance.playerSlots[i];
+                    if (card != null && newSlot.Card == null)
+                    {
+                        yield return Singleton<BoardManager>.Instance.ResolveCardOnBoard(card, newSlot);
+                    }
                 }
+                Singleton<ViewManager>.Instance.SwitchToView(View.Hand);
             }
-            Singleton<ViewManager>.Instance.SwitchToView(View.Hand);
             yield break;
         }
 
@@ -125,9 +130,12 @@ namespace DiskCardGame
 
         public override IEnumerator GameEnd(bool playerWon)
         {
-            foreach (CardSlot slot in Player_Backline.PlayerQueueSlots)
+            if (GameSettings.Current.AllowBackrows)
             {
-                slot.gameObject.SetActive(false);
+                foreach (CardSlot slot in Player_Backline.PlayerQueueSlots)
+                {
+                    slot.gameObject.SetActive(false);
+                }
             }
             yield break;
         }

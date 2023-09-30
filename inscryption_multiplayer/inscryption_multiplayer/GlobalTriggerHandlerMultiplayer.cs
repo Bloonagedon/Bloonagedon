@@ -71,13 +71,16 @@ namespace inscryption_multiplayer
 
         public override IEnumerator OnTurnEnd(bool playerTurnEnd)
         {
-            if (playerTurnEnd)
+            if (GameSettings.Current.AllowBackrows)
             {
-                PlayCardsInPlayerQueue();
-            }
-            else
-            {
-                InscryptionNetworking.Connection.Send(NetworkingMessage.CardsInOpponentQueueMoved);
+                if (playerTurnEnd)
+                {
+                    PlayCardsInPlayerQueue();
+                }
+                else
+                {
+                    InscryptionNetworking.Connection.Send(NetworkingMessage.CardsInOpponentQueueMoved);
+                }
             }
             yield break;
         }

@@ -19,12 +19,38 @@ namespace inscryption_multiplayer
                 __instance.specialBattleId = nameof(Multiplayer_Battle_Sequencer);
         }
 
+
+        [HarmonyPatch(typeof(RunState), nameof(RunState.GenerateMapDataForCurrentRegion))]
+        [HarmonyPrefix]
+        public static bool GenerateMapDataForCurrentRegionPrefix(RunState __instance, ref PredefinedNodes predefinedNodes)
+        {
+            if (!Plugin.MultiplayerActive)
+            {
+                return true;
+            }
+
+            int num = GameSettings.Current.NodeLength + 1;
+            __instance.map = MapGenerator.GenerateMap(RunState.CurrentMapRegion, GameSettings.Current.NodeWidth, num, predefinedNodes);
+            __instance.currentNodeId = __instance.map.RootNode.id;
+            return false;
+        }
+
+
         [HarmonyPatch(typeof(MapGenerator), nameof(MapGenerator.ChooseSpecialNodeFromPossibilities))]
         [HarmonyPrefix]
-        public static void RemoveBuildTotemNodeData(ref List<NodeData> possibilities)
+        public static void RemoveNodeData(ref List<NodeData> possibilities)
         {
-            if (Plugin.MultiplayerActive && !GameSettings.Current.AllowTotems)
-                possibilities.RemoveAll(n => n is BuildTotemNodeData);
+            if (Plugin.MultiplayerActive)
+            {
+                if (!GameSettings.Current.AllowTotems)
+                {
+                    possibilities.RemoveAll(n => n is BuildTotemNodeData);
+                }
+                if (!GameSettings.Current.AllowItems)
+                {
+                    possibilities.RemoveAll(n => n is GainConsumablesNodeData);
+                }
+            }
         }
 
         [HarmonyPatch(typeof(RunState), nameof(RunState.CurrentMapRegion), MethodType.Getter)]

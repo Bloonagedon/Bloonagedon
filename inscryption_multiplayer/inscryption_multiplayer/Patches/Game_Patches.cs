@@ -115,5 +115,17 @@ namespace inscryption_multiplayer
                 return true;
             }
         }
+
+        [HarmonyPatch(typeof(ConsumableItem), nameof(ConsumableItem.ConsumablesCanBeActivated))]
+        [HarmonyPrefix]
+        public static bool ConsumablesCanBeActivatedPrefix(ref bool __result)
+        {
+            if (Plugin.MultiplayerActive && !GameSettings.Current.AllowItems)
+            {
+                __result = false;
+                return false;
+            }
+            return true;
+        }
     }
 }

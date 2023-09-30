@@ -56,7 +56,7 @@ namespace inscryption_multiplayer.Patches
 
         public static bool IsPlayerQueueSlot(CardSlot slot)
         {
-            return PlayerQueueSlots.Contains(slot);
+            return GameSettings.Current.AllowBackrows ? PlayerQueueSlots.Contains(slot) : false;
         }
 
         private static IEnumerator PatchedSelectSlotForCard(PlayerHand __instance, PlayableCard card)
@@ -86,12 +86,15 @@ namespace inscryption_multiplayer.Patches
             bool requiresSacrifices = card.Info.BloodCost > 0;
             if (requiresSacrifices)
             {
-                List<CardSlot> validSacrificeSlots = Player_Backline.AllPlayerSlots.FindAll((CardSlot x) => x.Card != null);
+                List<CardSlot> validSacrificeSlots = GameSettings.Current.AllowSacrificeOnFrontrows ?
+                                                     AllPlayerSlots.FindAll((CardSlot x) => x.Card != null) :
+                                                     PlayerQueueSlots.FindAll((CardSlot x) => x.Card != null);
+
                 yield return Singleton<BoardManager>.Instance.ChooseSacrificesForCard(validSacrificeSlots, card);
             }
             if (!Singleton<BoardManager>.Instance.CancelledSacrifice)
             {
-                List<CardSlot> validSlots2 = PlayerQueueSlots.FindAll((CardSlot x) => x.Card == null);
+                List<CardSlot> validSlots2 = GameSettings.Current.AllowBackrows ? PlayerQueueSlots.FindAll((CardSlot x) => x.Card == null) : AllPlayerSlots.FindAll((CardSlot x) => x.Card == null);
                 yield return Singleton<BoardManager>.Instance.ChooseSlot(validSlots2, !requiresSacrifices);
                 CardSlot lastSelectedSlot = Singleton<BoardManager>.Instance.LastSelectedSlot;
                 if (lastSelectedSlot != null)
@@ -99,10 +102,10 @@ namespace inscryption_multiplayer.Patches
                     cardWasPlayed = true;
                     card.Anim.SetSelectedToPlay(false);
 
-                    if (IsPlayerQueueSlot(lastSelectedSlot))
-                    {
-                        InscryptionNetworking.Connection.SendJson(NetworkingMessage.CardQueuedByOpponent, CardToMPInfo(card, lastSelectedSlot));
-                    }
+                    InscryptionNetworking.Connection.SendJson(IsPlayerQueueSlot(lastSelectedSlot) ?
+                                                              NetworkingMessage.CardQueuedByOpponent :
+                                                              NetworkingMessage.CardPlacedByOpponent,
+                                                              CardToMPInfo(card, lastSelectedSlot));
 
                     yield return __instance.PlayCardOnSlot(card, lastSelectedSlot);
                     if (card.Info.BonesCost > 0)
@@ -209,7 +212,7 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static bool AssignCardToSlotPrefix(ref BoardManager __instance, out IEnumerator __result, PlayableCard card, CardSlot slot, float transitionDuration = 0.1f, Action tweenCompleteCallback = null, bool resolveTriggers = true)
         {
-            if (!Plugin.MultiplayerActive)
+            if (!Plugin.MultiplayerActive || !GameSettings.Current.AllowBackrows)
             {
                 __result = null;
                 return true;
@@ -256,7 +259,7 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static bool ResolveCardOnBoardPrefix(ref BoardManager __instance, out IEnumerator __result, PlayableCard card, CardSlot slot, float tweenLength = 0.1f, Action landOnBoardCallback = null, bool resolveTriggers = true)
         {
-            if (!Plugin.MultiplayerActive)
+            if (!Plugin.MultiplayerActive || !GameSettings.Current.AllowBackrows)
             {
                 __result = null;
                 return true;
@@ -270,19 +273,22 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPostfix]
         public static void AvailableSacrificeValuePostfix(ref BoardManager __instance, ref int __result)
         {
-            if (!Plugin.MultiplayerActive)
+            if (!Plugin.MultiplayerActive || !GameSettings.Current.AllowBackrows)
             {
                 return;
             }
+            List<CardSlot> validSacrificeSlots = GameSettings.Current.AllowSacrificeOnFrontrows ?
+                                                     AllPlayerSlots.FindAll((CardSlot x) => x.Card != null && x.Card.CanBeSacrificed) :
+                                                     PlayerQueueSlots.FindAll((CardSlot x) => x.Card != null && x.Card.CanBeSacrificed);
 
-            __result = __instance.GetValueOfSacrifices(Player_Backline.AllPlayerSlots.FindAll((CardSlot x) => x.Card != null && x.Card.CanBeSacrificed));
+            __result = __instance.GetValueOfSacrifices(validSacrificeSlots);
         }
 
         [HarmonyPatch(typeof(CardSlot), nameof(CardSlot.Index), MethodType.Getter)]
         [HarmonyPrefix]
         public static bool IndexPrefix(ref CardSlot __instance, ref int __result)
         {
-            if (!Plugin.MultiplayerActive)
+            if (!Plugin.MultiplayerActive || !GameSettings.Current.AllowBackrows)
             {
                 return true;
             }
@@ -309,7 +315,7 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static bool IsPlayerSlotPrefix(ref CardSlot __instance, ref bool __result)
         {
-            if (!Plugin.MultiplayerActive)
+            if (!Plugin.MultiplayerActive || !GameSettings.Current.AllowBackrows)
             {
                 return true;
             }
@@ -329,7 +335,7 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static bool DealOverkillDamagePrefix(ref int damage, ref CardSlot attackingSlot, ref CardSlot opposingSlot, ref CombatPhaseManager __instance, out IEnumerator __result)
         {
-            if (!Plugin.MultiplayerActive)
+            if (!Plugin.MultiplayerActive || !GameSettings.Current.AllowBackrows)
             {
                 __result = null;
                 return true;
@@ -365,45 +371,91 @@ namespace inscryption_multiplayer.Patches
             }
         }
 
+        //Removes the option to look at the backlane if it is not present
+        [HarmonyPatch(typeof(ViewController), nameof(ViewController.SwitchToControlMode))]
+        [HarmonyPostfix]
+        public static void SwitchToControlModePostfix(ref ViewController __instance, ViewController.ControlMode mode, bool immediate = false)
+        {
+            if (!Plugin.MultiplayerActive || GameSettings.Current.AllowBackrows)
+            {
+                return;
+            }
+
+            __instance.controlMode = mode;
+            View currentView = Singleton<ViewManager>.Instance.CurrentView;
+            __instance.altTransitionInputs.Clear();
+            switch (mode)
+            {
+                case ViewController.ControlMode.CardGameDefault:
+                    __instance.allowedViews = new List<View>
+                {
+                    View.Hand,
+                    View.Default,
+                    View.Board
+                };
+                    return;
+                default:
+                    return;
+            }
+        }
+
+        //Changes the view points based on if the backlane is enabled or not
         [HarmonyPatch(typeof(ViewManager), nameof(ViewManager.GetViewInfo))]
         [HarmonyPostfix]
-        public static void Postfix(View view, ref ViewInfo __result)
+        public static void GetViewInfoPostfix(View view, ref ViewInfo __result)
         {
             if (!Plugin.MultiplayerActive)
             {
                 return;
             }
-
             ViewInfo viewInfo = new ViewInfo();
-            switch (view)
+            if (GameSettings.Current.AllowBackrows)
             {
-                //case View.Board:
-                //    viewInfo.camPosition = new Vector3(0.475f, 9.71f, -3.36f);
-                //    viewInfo.handPosition = PlayerHand3D.DEFAULT_HAND_POS;
-                //    viewInfo.camRotation = new Vector3(79.9f, 0f, 0f);
-                //    viewInfo.fov = 50f;
-                //    break;
-                //case View.OpponentQueue:
-                //    viewInfo.camPosition = new Vector3(0.475f, 9.71f, -2.86f);
-                //    viewInfo.camRotation = new Vector3(60f, 0f, 0f);
-                //    viewInfo.fov = 55f;
-                //    break;
-                //default:
-                //    return;
+                switch (view)
+                {
+                    //case View.Board:
+                    //    viewInfo.camPosition = new Vector3(0.475f, 9.71f, -3.36f);
+                    //    viewInfo.handPosition = PlayerHand3D.DEFAULT_HAND_POS;
+                    //    viewInfo.camRotation = new Vector3(79.9f, 0f, 0f);
+                    //    viewInfo.fov = 50f;
+                    //    break;
+                    //case View.OpponentQueue:
+                    //    viewInfo.camPosition = new Vector3(0.475f, 9.71f, -2.86f);
+                    //    viewInfo.camRotation = new Vector3(60f, 0f, 0f);
+                    //    viewInfo.fov = 55f;
+                    //    break;
+                    //default:
+                    //    return;
 
-                case View.Board:
-                    viewInfo.camPosition = new Vector3(0.475f, 9.71f, -4.86f);
-                    viewInfo.camRotation = new Vector3(60f, 0f, 0f);
-                    viewInfo.fov = 55f;
-                    break;
-                case View.OpponentQueue:
-                    viewInfo.camPosition = new Vector3(0.475f, 9.71f, -2.86f);
-                    viewInfo.camRotation = new Vector3(60f, 0f, 0f);
-                    viewInfo.fov = 55f;
-                    break;
-                default:
-                    return;
+                    case View.Board:
+                        viewInfo.camPosition = new Vector3(0.475f, 9.71f, -4.86f);
+                        viewInfo.camRotation = new Vector3(60f, 0f, 0f);
+                        viewInfo.fov = 55f;
+                        break;
+                    case View.OpponentQueue:
+                        viewInfo.camPosition = new Vector3(0.475f, 9.71f, -2.86f);
+                        viewInfo.camRotation = new Vector3(60f, 0f, 0f);
+                        viewInfo.fov = 55f;
+                        break;
+                    default:
+                        return;
 
+                }
+            }
+            else
+            {
+                switch (view)
+                {
+                    case View.OpponentQueue:
+                        viewInfo.camPosition = new Vector3(0.475f, 9.71f, -1.36f);
+                        viewInfo.handPosition = PlayerHand3D.DEFAULT_HAND_POS;
+                        viewInfo.camRotation = new Vector3(79.9f, 0f, 0f);
+                        viewInfo.fov = 50f;
+                        break;
+                    default:
+                        return;
+
+                }
             }
             __result = viewInfo;
         }
@@ -412,7 +464,7 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static bool TriggerCardsOnBoardPrefix(ref GlobalTriggerHandler __instance, out IEnumerator __result, Trigger trigger, bool triggerFacedown, params object[] otherArgs)
         {
-            if (!Plugin.MultiplayerActive)
+            if (!Plugin.MultiplayerActive || !GameSettings.Current.AllowBackrows)
             {
                 __result = null;
                 return true;
@@ -447,9 +499,19 @@ namespace inscryption_multiplayer.Patches
                 return;
             }
 
+            if (!GameSettings.Current.AllowBackrows)
+            {
+                foreach (HighlightedInteractable slot in Singleton<BoardManager>.Instance.OpponentQueueSlots)
+                {
+                    slot.gameObject.SetActive(false);
+                }
+                return;
+            }
+
+            PlayerQueueSlots.RemoveAll(item => item == null);
+
             if (PlayerQueueSlots.Count == 0)
             {
-
                 for (int i = 0; i < Singleton<BoardManager>.Instance.AllSlotsCopy.Count; i++)
                 {
                     Vector3 NewPos = Singleton<BoardManager>.Instance.AllSlots[i].transform.position + new Vector3(0, 0, 0.25f);
@@ -486,7 +548,10 @@ namespace inscryption_multiplayer.Patches
             {
                 foreach (CardSlot slot in PlayerQueueSlots)
                 {
-                    slot.gameObject.SetActive(true);
+                    if (slot?.gameObject != null)
+                    {
+                        slot.gameObject.SetActive(true);
+                    }
                 }
             }
         }
