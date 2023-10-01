@@ -50,7 +50,7 @@ namespace inscryption_multiplayer
         //currently only works with Start Alone
         public static void OnGUI()
         {
-            if (Plugin.MultiplayerActive && InscryptionNetworking.START_ALONE)
+            if (Plugin.MultiplayerActive)
             {
                 UIOpen = GUI.Toggle(new Rect(20f, 10f, 200f, 20f), UIOpen, "Multiplayer Debug Menu");
                 if (UIOpen)

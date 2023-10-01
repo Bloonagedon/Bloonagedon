@@ -5,6 +5,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using UnityEngine;
+using UnityEngine.UI;
 
 namespace inscryption_multiplayer
 {
@@ -12,6 +14,12 @@ namespace inscryption_multiplayer
     public class Ascension_Patches
     {
         public static bool DeckSelection;
+        public static bool ChallengeSelection;
+
+        public class ChosenChallenges
+        {
+            public List<AscensionChallenge> challenges { get; set; }
+        }
 
         [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.LoadFromFile))]
         [HarmonyPostfix]
@@ -39,9 +47,38 @@ namespace inscryption_multiplayer
         {
             if (Menu_Patches.MultiplayerError != null || Plugin.MultiplayerActive)
             {
-                if (DeckSelection && screen == AscensionMenuScreens.Screen.SelectChallenges)
+                __instance.PreviousScreen = __instance.CurrentScreen;
+                __instance.CurrentScreen = screen;
+
+                //From deck selection to challenges
+                if (DeckSelection && __instance.CurrentScreen == AscensionMenuScreens.Screen.SelectChallenges)
                 {
                     DeckSelection = false;
+                    ChallengeSelection = true;
+
+                    if (!InscryptionNetworking.Connection.IsHost)
+                    {
+                        __instance.StartCoroutine(WaitUntilGameStarts());
+                        return false;
+                    }
+                    else
+                    {
+                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(AscensionMenuScreens.Screen.SelectChallenges));
+                        return false;
+                    }
+                }
+
+                //From challenges to game
+                if (ChallengeSelection && __instance.PreviousScreen == AscensionMenuScreens.Screen.SelectChallenges)
+                {
+                    ChallengeSelection = false;
+
+                    ChosenChallenges chosenChallenges = new ChosenChallenges
+                    {
+                        challenges = AscensionSaveData.Data.activeChallenges
+                    };
+                    InscryptionNetworking.Connection.SendJson(NetworkingMessage.ChallengesChosen, chosenChallenges);
+
                     SaveManager.savingDisabled = true;
                     AscensionSaveData.Data.NewRun(StarterDecksUtil.GetInfo(AscensionSaveData.Data.currentStarterDeck).cards);
                     LoadingScreenManager.LoadScene("Part1_Cabin");
@@ -49,6 +86,7 @@ namespace inscryption_multiplayer
                     Plugin.Log.LogInfo("started a game!");
                     return false;
                 }
+
                 //Plugin.MultiplayerActive = false;
                 Menu_Patches.MultiplayerError = null;
                 InscryptionNetworking.Connection.Leave();
@@ -56,6 +94,32 @@ namespace inscryption_multiplayer
                 return false;
             }
             return true;
+        }
+
+        public static IEnumerator WaitUntilGameStarts()
+        {
+            AscensionChooseStarterDeckScreen StarterDeckScreen = Singleton<AscensionChooseStarterDeckScreen>.Instance;
+            GameObject HeaderText = StarterDeckScreen.transform.Find("Header/Mid").gameObject;
+            GameObject WaitForChallengesText = GameObject.Instantiate(HeaderText);
+
+            foreach (Transform child in StarterDeckScreen.transform)
+            {
+                child.gameObject.SetActive(false);
+            }
+
+            WaitForChallengesText.transform.SetParent(StarterDeckScreen.transform);
+            WaitForChallengesText.transform.position = new Vector3(0, 0, 0);
+            WaitForChallengesText.GetComponentInChildren<Text>().text = "Waiting for the host to pick the challenges";
+            WaitForChallengesText.SetActive(true);
+
+            yield return new WaitUntil(() => !ChallengeSelection);
+            GameObject.Destroy(WaitForChallengesText);
+
+            SaveManager.savingDisabled = true;
+            AscensionSaveData.Data.NewRun(StarterDecksUtil.GetInfo(AscensionSaveData.Data.currentStarterDeck).cards);
+            LoadingScreenManager.LoadScene("Part1_Cabin");
+            Singleton<InteractionCursor>.Instance.SetHidden(true);
+            Plugin.Log.LogInfo("started a game!");
         }
 
         [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.ConfigurePostGameScreens))]

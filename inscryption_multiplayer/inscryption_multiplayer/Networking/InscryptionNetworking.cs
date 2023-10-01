@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using static inscryption_multiplayer.Ascension_Patches;
 using static inscryption_multiplayer.Utils;
 
 namespace inscryption_multiplayer.Networking
@@ -25,6 +26,7 @@ namespace inscryption_multiplayer.Networking
         public const string ChangeOpponentTotem = "ChangeOpponentTotem";
         public const string ItemUsed = "ItemUsed";
         public const string ChangeSettings = "ChangeSettings";
+        public const string ChallengesChosen = "ChallengesChosen";
     }
 
     public class NetworkingError
@@ -260,6 +262,16 @@ namespace inscryption_multiplayer.Networking
 
                     case NetworkingMessage.CardsInOpponentQueueMoved:
                         Singleton<BoardManager>.Instance.StartCoroutine(PlayCardsInOpponentQueue());
+                        break;
+
+                    case NetworkingMessage.ChallengesChosen:
+                        if (jsonString != null)
+                        {
+                            ChosenChallenges chosenChallenges = JsonConvert.DeserializeObject<ChosenChallenges>(jsonString);
+                            AscensionSaveData.Data.activeChallenges = chosenChallenges.challenges;
+                        }
+
+                        Ascension_Patches.ChallengeSelection = false;
                         break;
                 }
 
