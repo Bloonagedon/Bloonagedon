@@ -271,7 +271,7 @@ namespace inscryption_multiplayer.Networking
                             AscensionSaveData.Data.activeChallenges = chosenChallenges.challenges;
                         }
 
-                        Ascension_Patches.ChallengeSelection = false;
+                        Ascension_Patches.HostSelection = false;
                         break;
                 }
 

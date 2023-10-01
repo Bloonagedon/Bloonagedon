@@ -1,15 +1,18 @@
 ﻿using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using DiskCardGame;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
 using inscryption_multiplayer.Patches;
+using InscryptionAPI.Ascension;
 using InscryptionAPI.Card;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using UnityEngine;
 
 namespace inscryption_multiplayer

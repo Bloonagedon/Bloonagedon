@@ -1,8 +1,13 @@
+using BepInEx.Bootstrap;
 using DiskCardGame;
 using HarmonyLib;
 using inscryption_multiplayer.Networking;
+using InscryptionAPI.Ascension;
+using InscryptionAPI.Saves;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using UnityEngine;
@@ -14,7 +19,10 @@ namespace inscryption_multiplayer
     public class Ascension_Patches
     {
         public static bool DeckSelection;
-        public static bool ChallengeSelection;
+        public static bool HostSelection;
+
+        public static KeyValuePair<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase> PackSelectorScreen;
+        public static KeyValuePair<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase> SideDeckSelectorScreen;
 
         public class ChosenChallenges
         {
@@ -41,6 +49,32 @@ namespace inscryption_multiplayer
             }
         }
 
+        [HarmonyPatch(typeof(AscensionScreenManager), "InitializeScreensOnStart")]
+        [HarmonyPostfix]
+        public static void InitializeScreensOnStart()
+        {
+            if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.packmanager") || Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
+            {
+                AscensionScreenManager.InitializeAllScreens();
+
+                Type type = typeof(AscensionScreenManager);
+                FieldInfo info = type.GetField("screens", BindingFlags.NonPublic | BindingFlags.Static);
+                Dictionary<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase> screens = (Dictionary<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase>)info.GetValue(null);
+
+                foreach (KeyValuePair<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase> ScreenInfo in screens)
+                {
+                    if (ScreenInfo.Value.name == "PackSelectorScreen")
+                    {
+                        PackSelectorScreen = ScreenInfo;
+                    }
+                    if (ScreenInfo.Value.name == "SideDeckSelectorScreen")
+                    {
+                        SideDeckSelectorScreen = ScreenInfo;
+                    }
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.SwitchToScreen))]
         [HarmonyPrefix]
         private static bool ExitAscensionAfterMatch(AscensionMenuScreens __instance, AscensionMenuScreens.Screen screen)
@@ -50,40 +84,43 @@ namespace inscryption_multiplayer
                 __instance.PreviousScreen = __instance.CurrentScreen;
                 __instance.CurrentScreen = screen;
 
-                //From deck selection to challenges
+                //From deck selection to challenges or sidedeck selector
                 if (DeckSelection && __instance.CurrentScreen == AscensionMenuScreens.Screen.SelectChallenges)
                 {
                     DeckSelection = false;
-                    ChallengeSelection = true;
+                    HostSelection = true;
 
                     if (!InscryptionNetworking.Connection.IsHost)
-                    {
-                        __instance.StartCoroutine(WaitUntilGameStarts());
-                        return false;
-                    }
-                    else
                     {
                         __instance.StartCoroutine(__instance.ScreenSwitchSequence(AscensionMenuScreens.Screen.SelectChallenges));
                         return false;
                     }
+                    else
+                    {
+                        if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
+                        {
+                            __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
+                        }
+                        else
+                        {
+                            __instance.StartCoroutine(WaitUntilGameStarts());
+                        }
+
+                        return false;
+                    }
                 }
 
-                //From challenges to game
-                if (ChallengeSelection && __instance.PreviousScreen == AscensionMenuScreens.Screen.SelectChallenges)
+                //From challenges to game or sidedeck selector
+                if (HostSelection && __instance.PreviousScreen == AscensionMenuScreens.Screen.SelectChallenges)
                 {
-                    ChallengeSelection = false;
-
-                    ChosenChallenges chosenChallenges = new ChosenChallenges
+                    if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
                     {
-                        challenges = AscensionSaveData.Data.activeChallenges
-                    };
-                    InscryptionNetworking.Connection.SendJson(NetworkingMessage.ChallengesChosen, chosenChallenges);
-
-                    SaveManager.savingDisabled = true;
-                    AscensionSaveData.Data.NewRun(StarterDecksUtil.GetInfo(AscensionSaveData.Data.currentStarterDeck).cards);
-                    LoadingScreenManager.LoadScene("Part1_Cabin");
-                    Singleton<InteractionCursor>.Instance.SetHidden(true);
-                    Plugin.Log.LogInfo("started a game!");
+                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
+                    }
+                    else
+                    {
+                        HostStartRun();
+                    }
                     return false;
                 }
 
@@ -96,23 +133,66 @@ namespace inscryption_multiplayer
             return true;
         }
 
+        [HarmonyPatch(typeof(AscensionMenuScreens), nameof(AscensionMenuScreens.TransitionToGame))]
+        [HarmonyPrefix]
+        public static bool TransitionToGame(AscensionMenuScreens __instance)
+        {
+            if (Plugin.MultiplayerActive)
+            {
+                //From SideDeckSelector to game
+                if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
+                {
+                    if (!InscryptionNetworking.Connection.IsHost)
+                    {
+                        HostStartRun();
+                    }
+                    else
+                    {
+                        __instance.StartCoroutine(WaitUntilGameStarts());
+                    }
+                    return false;
+                }
+            }
+            return true;
+        }
+
+
+        public static void HostStartRun()
+        {
+            HostSelection = false;
+
+            ChosenChallenges chosenChallenges = new ChosenChallenges
+            {
+                challenges = AscensionSaveData.Data.activeChallenges
+            };
+            InscryptionNetworking.Connection.SendJson(NetworkingMessage.ChallengesChosen, chosenChallenges);
+
+            SaveManager.savingDisabled = true;
+            AscensionSaveData.Data.NewRun(StarterDecksUtil.GetInfo(AscensionSaveData.Data.currentStarterDeck).cards);
+            LoadingScreenManager.LoadScene("Part1_Cabin");
+            Singleton<InteractionCursor>.Instance.SetHidden(true);
+            Plugin.Log.LogInfo("started a game!");
+        }
+
         public static IEnumerator WaitUntilGameStarts()
         {
-            AscensionChooseStarterDeckScreen StarterDeckScreen = Singleton<AscensionChooseStarterDeckScreen>.Instance;
-            GameObject HeaderText = StarterDeckScreen.transform.Find("Header/Mid").gameObject;
+            GameObject EndScreen = Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks") ?
+                                   SideDeckSelectorScreen.Value.gameObject : Singleton<AscensionChooseStarterDeckScreen>.Instance.gameObject;
+
+            GameObject HeaderText = EndScreen.transform.Find("Header/Mid").gameObject;
             GameObject WaitForChallengesText = GameObject.Instantiate(HeaderText);
 
-            foreach (Transform child in StarterDeckScreen.transform)
+            foreach (Transform child in EndScreen.transform)
             {
                 child.gameObject.SetActive(false);
             }
 
-            WaitForChallengesText.transform.SetParent(StarterDeckScreen.transform);
+            WaitForChallengesText.transform.SetParent(EndScreen.transform);
             WaitForChallengesText.transform.position = new Vector3(0, 0, 0);
             WaitForChallengesText.GetComponentInChildren<Text>().text = "Waiting for the host to pick the challenges";
             WaitForChallengesText.SetActive(true);
 
-            yield return new WaitUntil(() => !ChallengeSelection);
+            yield return new WaitUntil(() => !HostSelection);
             GameObject.Destroy(WaitForChallengesText);
 
             SaveManager.savingDisabled = true;
