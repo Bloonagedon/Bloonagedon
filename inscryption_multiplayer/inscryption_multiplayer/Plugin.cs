@@ -6,6 +6,7 @@ using inscryption_multiplayer.Networking;
 using inscryption_multiplayer.Patches;
 using InscryptionAPI.Card;
 using Newtonsoft.Json;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;

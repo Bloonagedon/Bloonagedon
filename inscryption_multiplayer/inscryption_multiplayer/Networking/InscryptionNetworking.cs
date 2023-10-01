@@ -262,6 +262,14 @@ namespace inscryption_multiplayer.Networking
                         Singleton<BoardManager>.Instance.StartCoroutine(PlayCardsInOpponentQueue());
                         break;
                 }
+
+                foreach (KeyValuePair<string, Action<string, string>> messageData in API.messageList)
+                {
+                    if (message == messageData.Key)
+                    {
+                        messageData.Value.Invoke(message, jsonString);
+                    }
+                }
             }
         }
         private IEnumerator ToggleCardPlacePhase()

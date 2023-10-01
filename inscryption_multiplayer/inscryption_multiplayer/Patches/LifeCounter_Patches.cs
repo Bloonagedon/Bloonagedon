@@ -64,7 +64,6 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPostfix]
         public static void InitializePostfix()
         {
-            Plugin.Log.LogInfo("huiqriuggiyurq");
             if (!Plugin.MultiplayerActive || GameSettings.Current.ScaleSize == 5)
             {
                 return;
