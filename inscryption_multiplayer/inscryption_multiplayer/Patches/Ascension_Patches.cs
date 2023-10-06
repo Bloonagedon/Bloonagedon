@@ -1,6 +1,7 @@
 using BepInEx.Bootstrap;
 using DiskCardGame;
 using HarmonyLib;
+using Infiniscryption.PackManagement;
 using inscryption_multiplayer.Networking;
 using InscryptionAPI.Ascension;
 using InscryptionAPI.Saves;
@@ -24,9 +25,19 @@ namespace inscryption_multiplayer
         public static KeyValuePair<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase> PackSelectorScreen;
         public static KeyValuePair<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase> SideDeckSelectorScreen;
 
+        public static bool PackManagerActive => Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.packmanager");
+        public static bool SideDeckSelectorActive => Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks");
+
         public class ChosenChallenges
         {
             public List<AscensionChallenge> challenges { get; set; }
+        }
+        public class ChosenPacks
+        {
+            public string activePackString { get; set; }
+            public string activePackKey { get; set; }
+            public string inactivePackString { get; set; }
+            public string inactivePackKey { get; set; }
         }
 
         [HarmonyPatch(typeof(SaveManager), nameof(SaveManager.LoadFromFile))]
@@ -53,10 +64,8 @@ namespace inscryption_multiplayer
         [HarmonyPostfix]
         public static void InitializeScreensOnStart()
         {
-            if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.packmanager") || Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
+            if (PackManagerActive || SideDeckSelectorActive)
             {
-                AscensionScreenManager.InitializeAllScreens();
-
                 Type type = typeof(AscensionScreenManager);
                 FieldInfo info = type.GetField("screens", BindingFlags.NonPublic | BindingFlags.Static);
                 Dictionary<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase> screens = (Dictionary<AscensionMenuScreens.Screen, AscensionRunSetupScreenBase>)info.GetValue(null);
@@ -84,20 +93,21 @@ namespace inscryption_multiplayer
                 __instance.PreviousScreen = __instance.CurrentScreen;
                 __instance.CurrentScreen = screen;
 
-                //From deck selection to challenges or sidedeck selector
+                //Plugin.Log.LogInfo($"Current screen: {__instance.CurrentScreen}\nPrevious screen: {__instance.PreviousScreen}");
+
+                //From deck selection to challenges
                 if (DeckSelection && __instance.CurrentScreen == AscensionMenuScreens.Screen.SelectChallenges)
                 {
                     DeckSelection = false;
-                    HostSelection = true;
 
-                    if (!InscryptionNetworking.Connection.IsHost)
+                    if (InscryptionNetworking.Connection.IsHost)
                     {
                         __instance.StartCoroutine(__instance.ScreenSwitchSequence(AscensionMenuScreens.Screen.SelectChallenges));
                         return false;
                     }
                     else
                     {
-                        if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
+                        if (SideDeckSelectorActive)
                         {
                             __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
                         }
@@ -110,16 +120,30 @@ namespace inscryption_multiplayer
                     }
                 }
 
-                //From challenges to game or sidedeck selector
-                if (HostSelection && __instance.PreviousScreen == AscensionMenuScreens.Screen.SelectChallenges)
+                //From challenges to another screen
+                if (__instance.PreviousScreen == AscensionMenuScreens.Screen.SelectChallenges)
                 {
-                    if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
+                    if (PackManagerActive)
+                    {
+                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(PackSelectorScreen.Key));
+                    }
+                    else if (SideDeckSelectorActive)
                     {
                         __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
                     }
                     else
                     {
                         HostStartRun();
+                    }
+                    return false;
+                }
+
+                //from pack selector to another screen
+                if (PackManagerActive && SideDeckSelectorActive)
+                {
+                    if (__instance.PreviousScreen == PackSelectorScreen.Key)
+                    {
+                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
                     }
                     return false;
                 }
@@ -139,19 +163,16 @@ namespace inscryption_multiplayer
         {
             if (Plugin.MultiplayerActive)
             {
-                //From SideDeckSelector to game
-                if (Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks"))
+                //from any screen to the game
+                if (InscryptionNetworking.Connection.IsHost)
                 {
-                    if (!InscryptionNetworking.Connection.IsHost)
-                    {
-                        HostStartRun();
-                    }
-                    else
-                    {
-                        __instance.StartCoroutine(WaitUntilGameStarts());
-                    }
-                    return false;
+                    HostStartRun();
                 }
+                else
+                {
+                    __instance.StartCoroutine(WaitUntilGameStarts());
+                }
+                return false;
             }
             return true;
         }
@@ -160,6 +181,11 @@ namespace inscryption_multiplayer
         public static void HostStartRun()
         {
             HostSelection = false;
+
+            if (PackManagerActive)
+            {
+                SendActivePacks();
+            }
 
             ChosenChallenges chosenChallenges = new ChosenChallenges
             {
@@ -174,22 +200,35 @@ namespace inscryption_multiplayer
             Plugin.Log.LogInfo("started a game!");
         }
 
+        public static void SendActivePacks()
+        {
+            MethodInfo SavePackListMethod = typeof(PackManager).GetMethod("RetrievePackList", BindingFlags.NonPublic | BindingFlags.Static);
+
+            List<PackInfo> activePacks = (List<PackInfo>)SavePackListMethod.Invoke(null, new object[] { true, CardTemple.Nature });
+            List<PackInfo> inactivePacks = (List<PackInfo>)SavePackListMethod.Invoke(null, new object[] { false, CardTemple.Nature });
+
+            ChosenPacks chosenPacks = new ChosenPacks
+            {
+                activePackString = String.Join("|", activePacks.Select(pi => pi.Key)),
+                activePackKey = $"AscensionData_ActivePackList",
+                inactivePackString = String.Join("|", inactivePacks.Select(pi => pi.Key)),
+                inactivePackKey = $"{CardTemple.Nature}_InactivePackList"
+            };
+            InscryptionNetworking.Connection.SendJson(NetworkingMessage.PacksChosen, chosenPacks);
+        }
+
         public static IEnumerator WaitUntilGameStarts()
         {
-            GameObject EndScreen = Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks") ?
-                                   SideDeckSelectorScreen.Value.gameObject : Singleton<AscensionChooseStarterDeckScreen>.Instance.gameObject;
+            GameObject starterDeckSelectScreen = Singleton<AscensionMenuScreens>.Instance.starterDeckSelectScreen;
 
-            GameObject HeaderText = EndScreen.transform.Find("Header/Mid").gameObject;
+            GameObject HeaderText = starterDeckSelectScreen.transform.Find("Header/Mid").gameObject;
             GameObject WaitForChallengesText = GameObject.Instantiate(HeaderText);
 
-            foreach (Transform child in EndScreen.transform)
-            {
-                child.gameObject.SetActive(false);
-            }
+            Singleton<AscensionMenuScreens>.Instance.DeactivateAllScreens();
 
-            WaitForChallengesText.transform.SetParent(EndScreen.transform);
+            WaitForChallengesText.transform.SetParent(starterDeckSelectScreen.transform.parent);
             WaitForChallengesText.transform.position = new Vector3(0, 0, 0);
-            WaitForChallengesText.GetComponentInChildren<Text>().text = "Waiting for the host to pick the challenges";
+            WaitForChallengesText.GetComponentInChildren<Text>().text = "Waiting for the host to pick the challenges" + (PackManagerActive ? " and packs" : "");
             WaitForChallengesText.SetActive(true);
 
             yield return new WaitUntil(() => !HostSelection);
@@ -208,6 +247,8 @@ namespace inscryption_multiplayer
         {
             if (DeckSelection && Plugin.MultiplayerActive)
             {
+                HostSelection = true;
+
                 __instance.StartCoroutine(
                     __instance.ScreenSwitchSequence(AscensionMenuScreens.Screen.StarterDeckSelect));
                 return false;

@@ -74,5 +74,16 @@ namespace inscryption_multiplayer.Patches
             }
             return true;
         }
+
+        [HarmonyPatch(typeof(Morsel), nameof(Morsel.OnSacrifice))]
+        [HarmonyPrefix]
+        public static bool MorselSync(ref RandomConsumable __instance)
+        {
+            if (Plugin.MultiplayerActive && __instance.Card.OpponentCard)
+            {
+                return false;
+            }
+            return true;
+        }
     }
 }

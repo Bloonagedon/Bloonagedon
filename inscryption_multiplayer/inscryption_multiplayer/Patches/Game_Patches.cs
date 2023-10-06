@@ -127,5 +127,16 @@ namespace inscryption_multiplayer
             }
             return true;
         }
+
+        [HarmonyPatch(typeof(CombatPhaseManager), nameof(CombatPhaseManager.DealOverkillDamage))]
+        [HarmonyPrefix]
+        public static bool DealOverkillDamagePrefix()
+        {
+            if (Plugin.MultiplayerActive && !GameSettings.Current.AllowBackrows)
+            {
+                return false;
+            }
+            return true;
+        }
     }
 }

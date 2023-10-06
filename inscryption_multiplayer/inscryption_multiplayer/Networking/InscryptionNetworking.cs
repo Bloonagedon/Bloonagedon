@@ -1,10 +1,13 @@
 using DiskCardGame;
+using Infiniscryption.PackManagement;
 using inscryption_multiplayer.Patches;
+using InscryptionAPI.Saves;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEngine;
 using static inscryption_multiplayer.Ascension_Patches;
@@ -27,6 +30,7 @@ namespace inscryption_multiplayer.Networking
         public const string ItemUsed = "ItemUsed";
         public const string ChangeSettings = "ChangeSettings";
         public const string ChallengesChosen = "ChallengesChosen";
+        public const string PacksChosen = "PacksChosen";
     }
 
     public class NetworkingError
@@ -273,6 +277,11 @@ namespace inscryption_multiplayer.Networking
 
                         Ascension_Patches.HostSelection = false;
                         break;
+
+                    case NetworkingMessage.PacksChosen:
+                        ChosenPacks chosenPacks = JsonConvert.DeserializeObject<ChosenPacks>(jsonString);
+                        PacksChosen(chosenPacks);
+                        break;
                 }
 
                 foreach (KeyValuePair<string, Action<string, string>> messageData in API.messageList)
@@ -284,6 +293,16 @@ namespace inscryption_multiplayer.Networking
                 }
             }
         }
+
+        public static void PacksChosen(ChosenPacks chosenPacks)
+        {
+            ModdedSaveManager.SaveData.SetValue("zorro.inscryption.infiniscryption.packmanager", chosenPacks.activePackKey, chosenPacks.activePackString);
+            ModdedSaveManager.SaveData.SetValue("zorro.inscryption.infiniscryption.packmanager", chosenPacks.inactivePackKey, chosenPacks.inactivePackString);
+
+            MethodInfo FilterCardAndAbilityListMethod = typeof(PackManager).GetMethod("FilterCardAndAbilityList", BindingFlags.NonPublic | BindingFlags.Static);
+            FilterCardAndAbilityListMethod.Invoke(null, null);
+        }
+
         private IEnumerator ToggleCardPlacePhase()
         {
             Multiplayer_Battle_Sequencer.Current.OpponentCardPlacePhase = false;

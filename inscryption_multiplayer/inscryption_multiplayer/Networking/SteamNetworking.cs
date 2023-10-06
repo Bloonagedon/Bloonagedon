@@ -57,7 +57,7 @@ namespace inscryption_multiplayer.Networking
         {
             if (Connected)
             {
-                if(OtherPlayerID != null && IsHost)
+                if (OtherPlayerID != null && IsHost)
                     SteamMatchmaking.SetLobbyOwner((CSteamID)LobbyID, (CSteamID)OtherPlayerID);
                 SteamMatchmaking.LeaveLobby((CSteamID)LobbyID);
                 LobbyID = null;
@@ -183,7 +183,7 @@ namespace inscryption_multiplayer.Networking
                 OtherPlayerName = null;
                 if (SceneLoader.ActiveSceneName == SceneLoader.StartSceneName)
                 {
-                    if(IsHost)
+                    if (IsHost)
                     {
                         TransferredHost = true;
                         var ui = MultiplayerAssetHandler.MultiplayerSettingsUIInstance;
