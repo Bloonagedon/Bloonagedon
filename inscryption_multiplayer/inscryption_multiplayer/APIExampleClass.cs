@@ -13,7 +13,7 @@ namespace inscryption_multiplayer
 
         public void Awake()
         {
-            API.ReceiveMessage("TestMessage", ReceivedTestMessage);
+            API.AddMessageReceiver("TestMessage", ReceivedTestMessage);
         }
 
         public static void AMethod()

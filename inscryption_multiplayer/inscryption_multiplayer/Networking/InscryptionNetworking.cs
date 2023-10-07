@@ -128,6 +128,11 @@ namespace inscryption_multiplayer.Networking
                 Plugin.Log.LogInfo($"Json string: {jsonString}");
             }
 
+            if (DebugUI.debugEnabled && DebugUI.receiveAllMessages)
+            {
+                selfMessage = false;
+            }
+
             //messages here should be received by all users in the lobby
             switch (message)
             {
@@ -143,8 +148,6 @@ namespace inscryption_multiplayer.Networking
                     SceneLoader.Load("Ascension_Configure");
 
                     break;
-
-                    //everything below here is for testing, it shouldn't be here for release or when testing it with another player
             }
 
             //messages here should be received by all users in the lobby except by the one who sent it
@@ -246,7 +249,7 @@ namespace inscryption_multiplayer.Networking
                             }
                         }
                         break;
-                    
+
                     case NetworkingMessage.SigilData:
                         var sigilData = JsonConvert.DeserializeObject<SigilEvent>(jsonString);
                         if (!MultiplayerRunState.Run.SigilCommunicators.TryGetValue(sigilData.ID, out var communicator))

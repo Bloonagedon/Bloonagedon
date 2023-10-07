@@ -1,5 +1,7 @@
 ﻿using DiskCardGame;
 using HarmonyLib;
+using inscryption_multiplayer.Networking;
+using static inscryption_multiplayer.Utils;
 
 namespace inscryption_multiplayer.Patches
 {

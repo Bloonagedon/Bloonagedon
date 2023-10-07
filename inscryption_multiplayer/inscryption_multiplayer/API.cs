@@ -20,7 +20,7 @@ namespace inscryption_multiplayer
             InscryptionNetworking.Connection.Send(message);
         }
 
-        public static void ReceiveMessage(string message, Action<string, string> receivedMessage)
+        public static void AddMessageReceiver(string message, Action<string, string> receivedMessage)
         {
             messageList.Add(message, receivedMessage);
         }

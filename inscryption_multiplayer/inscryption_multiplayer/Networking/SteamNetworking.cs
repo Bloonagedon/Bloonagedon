@@ -29,7 +29,19 @@ namespace inscryption_multiplayer.Networking
         private Callback<LobbyChatMsg_t> lobbyChatMsg;
 
         internal override bool Connected => LobbyID is not null;
-        internal override bool IsHost => Connected && SteamMatchmaking.GetLobbyOwner((CSteamID)LobbyID) == PlayerID;
+        internal override bool IsHost
+        {
+            get
+            {
+                bool IsHost = SteamMatchmaking.GetLobbyOwner((CSteamID)LobbyID) == PlayerID;
+                if (DebugUI.debugEnabled && DebugUI.inverseIsHost)
+                {
+                    IsHost = !IsHost;
+                }
+                return Connected && IsHost;
+            }
+        }
+
 
         internal override void Host()
         {

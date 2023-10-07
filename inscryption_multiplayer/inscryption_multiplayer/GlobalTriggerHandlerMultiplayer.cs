@@ -42,14 +42,18 @@ namespace inscryption_multiplayer
 
         public override bool RespondsToOtherCardResolve(PlayableCard otherCard)
         {
-            //not needed because i can disable triggers when placing a card but i just left it here as it might be useful in the future
-            //return otherCard.temporaryMods.Any(x => x.singletonId != "PlacedByMultiplayerOpponent");
-
             return true;
         }
 
         public override IEnumerator OnOtherCardResolve(PlayableCard otherCard)
         {
+            if (otherCard.HasAbility(Ability.CorpseEater) && !otherCard.OpponentCard)
+            {
+                InscryptionNetworking.Connection.SendJson(Player_Backline.IsPlayerQueueSlot(otherCard.Slot) ?
+                                                                      NetworkingMessage.CardQueuedByOpponent :
+                                                                      NetworkingMessage.CardPlacedByOpponent,
+                                                                      CardToMPInfo(otherCard));
+            }
             yield break;
         }
 

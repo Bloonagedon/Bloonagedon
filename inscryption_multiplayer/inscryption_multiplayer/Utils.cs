@@ -41,7 +41,7 @@ namespace inscryption_multiplayer
             public bool isQueueSlot { get; set; }
         }
 
-        public static CardInfoMultiplayer CardToMPInfo(PlayableCard card, CardSlot slotOverride = null)
+        public static CardInfoMultiplayer CardToMPInfo(PlayableCard card, CardSlot slotOverride = null, bool invertSide = true)
         {
             CardSlot slot = slotOverride ?? card.Slot;
 
@@ -53,18 +53,18 @@ namespace inscryption_multiplayer
                 slot = new CardSlotMultiplayer
                 {
                     index = slot.Index,
-                    isPlayerSlot = !slot.IsPlayerSlot
+                    isPlayerSlot = !slot.IsPlayerSlot == invertSide
                 }
             };
             return cardInfo;
         }
 
-        public static CardSlotMultiplayer SlotToMPInfo(CardSlot slot)
+        public static CardSlotMultiplayer SlotToMPInfo(CardSlot slot, bool invertSide = true)
         {
             CardSlotMultiplayer slotInfo = new CardSlotMultiplayer
             {
                 index = slot.Index,
-                isPlayerSlot = !slot.IsPlayerSlot,
+                isPlayerSlot = !slot.IsPlayerSlot == invertSide,
                 isQueueSlot = Player_Backline.IsPlayerQueueSlot(slot)
             };
             return slotInfo;

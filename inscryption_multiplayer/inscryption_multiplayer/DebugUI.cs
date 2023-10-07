@@ -15,13 +15,19 @@ namespace inscryption_multiplayer
 {
     public class DebugUI
     {
-        public static bool debugEnabled = false;
+        public static bool debugEnabled = true;
         public static bool UIOpen = true;
+
+        public static bool toggleInverseIsHost = false;
+        public static bool inverseIsHost = false;
+
+        public static bool toggleReceiveAllMessages = false;
+        public static bool receiveAllMessages = false;
 
         public static bool sendCard = false;
         public static bool sendSlot = false;
-        public static bool toggleSendToAll = true;
 
+        public static bool toggleSendToAll = false;
         public static bool sendToAll = true;
 
         public static string message = "";
@@ -55,6 +61,18 @@ namespace inscryption_multiplayer
                 UIOpen = GUI.Toggle(new Rect(20f, 10f, 200f, 20f), UIOpen, "Multiplayer Debug Menu");
                 if (UIOpen)
                 {
+                    toggleInverseIsHost = GUI.Button(new Rect(220f, 70f, 200f, 40f), InscryptionNetworking.Connection.IsHost ? "Is Host" : "Is Not Host");
+                    if (toggleInverseIsHost)
+                    {
+                        inverseIsHost = !inverseIsHost;
+                    }
+
+                    toggleReceiveAllMessages = GUI.Button(new Rect(220f, 150f, 200f, 40f), receiveAllMessages ? "Receiving All Messages" : "Receiving Messages Normally");
+                    if (toggleReceiveAllMessages)
+                    {
+                        receiveAllMessages = !receiveAllMessages;
+                    }
+
                     sendCard = GUI.Toggle(new Rect(20f, 50f, 200f, 20f), sendCard, "Send Card");
                     bool setCard = GUI.Button(new Rect(20f, 70f, 200f, 40f), "Set Card");
                     if (setCard)
