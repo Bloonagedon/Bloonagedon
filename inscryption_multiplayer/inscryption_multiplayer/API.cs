@@ -24,5 +24,25 @@ namespace inscryption_multiplayer
         {
             messageList.Add(message, receivedMessage);
         }
+
+        public static SigilCommunicator<TData> InitSigilCommunicator<TData>(string id)
+        {
+            if (MultiplayerRunState.Run.SigilCommunicators.TryGetValue(id, out var communicatorBase))
+            {
+                if (communicatorBase is SigilCommunicatorDummy dummy)
+                {
+                    var comm = dummy.CreateProper<TData>();
+                    MultiplayerRunState.Run.SigilCommunicators[id] = comm;
+                    return comm;
+                }
+                if (communicatorBase is SigilCommunicator<TData> communicator)
+                    return communicator;
+                throw new ArgumentException(
+                    $"Communicator type mismatch (Used: {communicatorBase.GetType().FullName}; Given: {typeof(SigilCommunicator<TData>).FullName})");
+            }
+            var newComm = new SigilCommunicator<TData>(id);
+            MultiplayerRunState.Run.SigilCommunicators.Add(id, newComm);
+            return newComm;
+        }
     }
 }

@@ -67,6 +67,12 @@
     <Reference Include="InscryptionAPI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\lib\InscryptionAPI.dll</HintPath>
     </Reference>
+    <Reference Include="InscryptionCommunityPatch">
+      <HintPath>..\lib\InscryptionCommunityPatch.dll</HintPath>
+    </Reference>
+    <Reference Include="Infiniscryption.PackManager">
+      <HintPath>..\lib\Infiniscryption.PackManager.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
  <ItemGroup>

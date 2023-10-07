@@ -27,6 +27,9 @@ namespace inscryption_multiplayer
 
         public static bool PackManagerActive => Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.packmanager");
         public static bool SideDeckSelectorActive => Chainloader.PluginInfos.ContainsKey("zorro.inscryption.infiniscryption.sidedecks");
+        
+        private static AscensionMenuScreens.Screen PackSelectorScreenKey => PackSelectorScreen.Key;
+        private static AscensionMenuScreens.Screen SideDeckSelectorScreenKey => SideDeckSelectorScreen.Key;
 
         public class ChosenChallenges
         {
@@ -109,7 +112,7 @@ namespace inscryption_multiplayer
                     {
                         if (SideDeckSelectorActive)
                         {
-                            __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
+                            __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreenKey));
                         }
                         else
                         {
@@ -125,11 +128,11 @@ namespace inscryption_multiplayer
                 {
                     if (PackManagerActive)
                     {
-                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(PackSelectorScreen.Key));
+                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(PackSelectorScreenKey));
                     }
                     else if (SideDeckSelectorActive)
                     {
-                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
+                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreenKey));
                     }
                     else
                     {
@@ -141,9 +144,9 @@ namespace inscryption_multiplayer
                 //from pack selector to another screen
                 if (PackManagerActive && SideDeckSelectorActive)
                 {
-                    if (__instance.PreviousScreen == PackSelectorScreen.Key)
+                    if (__instance.PreviousScreen == PackSelectorScreenKey)
                     {
-                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreen.Key));
+                        __instance.StartCoroutine(__instance.ScreenSwitchSequence(SideDeckSelectorScreenKey));
                     }
                     return false;
                 }
@@ -207,11 +210,20 @@ namespace inscryption_multiplayer
             List<PackInfo> activePacks = (List<PackInfo>)SavePackListMethod.Invoke(null, new object[] { true, CardTemple.Nature });
             List<PackInfo> inactivePacks = (List<PackInfo>)SavePackListMethod.Invoke(null, new object[] { false, CardTemple.Nature });
 
+            List<string> activePackKeys = new();
+            List<string> inactivePackKeys = new();
+            
+            foreach(var pi in activePacks)
+                activePackKeys.Add(pi.Key);
+            
+            foreach(var pi in inactivePacks)
+                inactivePackKeys.Add(pi.Key);
+
             ChosenPacks chosenPacks = new ChosenPacks
             {
-                activePackString = String.Join("|", activePacks.Select(pi => pi.Key)),
+                activePackString = String.Join("|", activePackKeys),
                 activePackKey = $"AscensionData_ActivePackList",
-                inactivePackString = String.Join("|", inactivePacks.Select(pi => pi.Key)),
+                inactivePackString = String.Join("|", inactivePackKeys),
                 inactivePackKey = $"{CardTemple.Nature}_InactivePackList"
             };
             InscryptionNetworking.Connection.SendJson(NetworkingMessage.PacksChosen, chosenPacks);

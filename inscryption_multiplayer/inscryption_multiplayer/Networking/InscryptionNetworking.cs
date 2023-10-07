@@ -25,7 +25,7 @@ namespace inscryption_multiplayer.Networking
         public const string CardQueuedByOpponent = "CardPlacedByOpponentInQueue";
         public const string CardSacrificedByOpponent = "CardSacrificedByOpponent";
         public const string CardsInOpponentQueueMoved = "CardsInOpponentQueueMoved";
-        public const string EggPlaced = "EggPlaced";
+        public const string SigilData = "SigilData";
         public const string ChangeOpponentTotem = "ChangeOpponentTotem";
         public const string ItemUsed = "ItemUsed";
         public const string ChangeSettings = "ChangeSettings";
@@ -133,6 +133,7 @@ namespace inscryption_multiplayer.Networking
             {
                 case NetworkingMessage.StartGame:
                     MultiplayerRunState.Run = new();
+                    MultiplayerRunState.Run.InitCommunicators();
                     Game_Patches.OpponentReady = false;
                     //starts a new run
                     //Singleton<AscensionMenuScreens>.Instance.TransitionToGame(true);
@@ -245,9 +246,15 @@ namespace inscryption_multiplayer.Networking
                             }
                         }
                         break;
-
-                    case NetworkingMessage.EggPlaced:
-                        MultiplayerRunState.Run.EggQueue.Enqueue(wordList[1] == "1");
+                    
+                    case NetworkingMessage.SigilData:
+                        var sigilData = JsonConvert.DeserializeObject<SigilEvent>(jsonString);
+                        if (!MultiplayerRunState.Run.SigilCommunicators.TryGetValue(sigilData.ID, out var communicator))
+                        {
+                            communicator = new SigilCommunicatorDummy(sigilData.ID);
+                            MultiplayerRunState.Run.SigilCommunicators.Add(sigilData.ID, communicator);
+                        }
+                        communicator.Process(sigilData.Data);
                         break;
 
                     case NetworkingMessage.ChangeOpponentTotem:

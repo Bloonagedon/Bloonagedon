@@ -26,7 +26,7 @@ public class Item_Sync
     [HarmonyPrefix]
     public static void SendItemActivation(ConsumableItemSlot __instance)
     {
-        if (Plugin.MultiplayerActive && __instance.Item is not TargetSlotItem)
+        if (__instance.Item is not TargetSlotItem)
             SendItemData(null, __instance.Item.Data, false);
     }
 
@@ -51,7 +51,7 @@ public class Item_Sync
 
     private static void SendItemData(CardSlot slot, ItemData itemData, bool targetItem)
     {
-		if(targetItem && slot == null)
+		if(!Plugin.MultiplayerActive || (targetItem && slot == null))
 			return;
         InscryptionNetworking.Connection.SendJson(NetworkingMessage.ItemUsed, new MultiplayerItemData
         {
@@ -97,7 +97,7 @@ public class Item_Sync
             Singleton<ViewManager>.Instance.Controller.LockState = ViewLockState.Locked;
             Singleton<InteractionCursor>.Instance.InteractionDisabled = true;
             yield return targetItem.OnValidTargetSelected(targetSlot, firstPersonItem.gameObject);
-            Object.Destroy(firstPersonItem);
+            Object.Destroy(firstPersonItem.gameObject);
             Singleton<UIManager>.Instance.Effects.GetEffect<EyelidMaskEffect>().SetIntensity(0f, 0.2f);
             Singleton<ViewManager>.Instance.Controller.LockState = ViewLockState.Unlocked;
         }
