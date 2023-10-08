@@ -26,6 +26,7 @@ namespace inscryption_multiplayer
         public static GameObject MultiplayerSettingsUI;
         public static GameObject MultiplayerMenuCard;
         public static GameObject MultiplayerErrorUI;
+        public static Texture2D LifeCounterTexture;
 
         public static InscryptionMultiplayerMenuUI MultiplayerSettingsUIInstance;
         public static GameObject MultiplayerMenuCardInstance;
@@ -37,6 +38,7 @@ namespace inscryption_multiplayer
             MultiplayerSettingsUI = bundle.LoadAsset<GameObject>("MultiplayerSettingsUI");
             MultiplayerMenuCard = bundle.LoadAsset<GameObject>("MenuCard_Online");
             MultiplayerErrorUI = bundle.LoadAsset<GameObject>("MultiplayerErrorUI");
+            LifeCounterTexture = bundle.LoadAsset<Texture2D>("Life_Counter");
             bundle.Unload(false);
         }
 

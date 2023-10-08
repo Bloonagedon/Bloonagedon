@@ -3,6 +3,7 @@ using BepInEx.Configuration;
 using DiskCardGame;
 using GBC;
 using HarmonyLib;
+using inscryption_multiplayer;
 using inscryption_multiplayer.Networking;
 using InscryptionAPI.Card;
 using System;
@@ -29,7 +30,7 @@ namespace inscryption_multiplayer.Patches
             // Token: 0x060000AA RID: 170 RVA: 0x000091A4 File Offset: 0x000073A4
             public override void ApplyAppearance()
             {
-                base.Card.RenderInfo.baseTextureOverride = GetTexture("Life_Counter.png");
+                base.Card.RenderInfo.baseTextureOverride = MultiplayerAssetHandler.LifeCounterTexture;
             }
 
             // Token: 0x04000040 RID: 64
@@ -43,14 +44,14 @@ namespace inscryption_multiplayer.Patches
             LifeCounterCard.RenderCard();
         }
 
-        public static Texture2D GetTexture(string path)
+        /*public static Texture2D GetTexture(string path)
         {
             byte[] imgBytes = File.ReadAllBytes(Path.Combine(Plugin.Directory, path));
             Texture2D tex = new Texture2D(2, 2);
             tex.LoadImage(imgBytes);
             tex.filterMode = FilterMode.Point;
             return tex;
-        }
+        }*/
 
         [HarmonyPatch(typeof(TurnManager), "LifeLossConditionsMet")]
         [HarmonyPrefix]
