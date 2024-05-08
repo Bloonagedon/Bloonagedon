@@ -79,6 +79,7 @@ public class Item_Sync
         yield return new WaitForSecondsRealtime(1f);
         var consumableItem = (ConsumableItem)itemSlot.Item;
         MultiplayerRunState.Run.OpponentItemUsed = true;
+        GetItemPositionOffset(consumableItem, out Vector3 positionOffset, out Vector3 rotationOffset);
         if (_itemData.TargetSlotIndex != null && consumableItem is TargetSlotItem targetItem)
         {
             var targetSlot = Singleton<BoardManager>.Instance.playerSlots[(int)_itemData.TargetSlotIndex];
@@ -90,10 +91,12 @@ public class Item_Sync
             var firstPersonItem = Singleton<FirstPersonController>.Instance.AnimController
                 .SpawnFirstPersonAnimation(targetItem.FirstPersonPrefabId).transform;
             firstPersonItem.localPosition = targetItem.FirstPersonItemPos + Vector3.right * 3f;
-            firstPersonItem.localEulerAngles = targetItem.FirstPersonItemEulers;
+            firstPersonItem.localEulerAngles = targetItem.FirstPersonItemEulers + rotationOffset;
             Singleton<InteractionCursor>.Instance.InteractionDisabled = false;
-            targetItem.MoveItemToPosition(firstPersonItem, targetSlot.transform.position);
-            Singleton<ViewManager>.Instance.Controller.LockState = ViewLockState.Unlocked;
+            Tween.Position(firstPersonItem,
+                new Vector3(targetSlot.transform.position.x, firstPersonItem.position.y, firstPersonItem.position.z) +
+                positionOffset, 0.2f, 0f, Tween.EaseOut);
+            //targetItem.MoveItemToPosition(firstPersonItem, targetSlot.transform.position + new Vector3(.4f, 0f, 2f));
             Singleton<ViewManager>.Instance.Controller.LockState = ViewLockState.Locked;
             Singleton<InteractionCursor>.Instance.InteractionDisabled = true;
             yield return targetItem.OnValidTargetSelected(targetSlot, firstPersonItem.gameObject);
@@ -103,5 +106,33 @@ public class Item_Sync
         }
         else yield return consumableItem.ActivateSequence();
         MultiplayerRunState.Run.OpponentItemUsed = false;
+    }
+
+    private static void GetItemPositionOffset(ConsumableItem item, out Vector3 positionOffset, out Vector3 rotationOffset)
+    {
+        if (item is TrapperKnifeItem)
+        {
+            positionOffset = new(1f, 0f, 2.4f);
+            rotationOffset = new(-240f, 180f, 35f);
+            return;
+        }
+        
+        if (item is ScissorsItem)
+        {
+            positionOffset = new(0.4f, 0f, 1.1f);
+            rotationOffset = new(180f, 0f, 0f);
+            return;
+        }
+
+        if (item is FishHookItem)
+        {
+            positionOffset = new(0.4f, 2f, 1.6f);
+            rotationOffset = new(0f, 0f, 180f);
+            return;
+        }
+        
+
+        positionOffset = Vector3.zero;
+        rotationOffset = Vector3.zero;
     }
 }
