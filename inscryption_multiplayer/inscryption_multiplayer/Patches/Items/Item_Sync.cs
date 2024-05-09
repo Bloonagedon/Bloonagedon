@@ -138,12 +138,11 @@ public class Item_Sync
 
         if (item is FishHookItem)
         {
-            positionOffset = new(0.4f, 2f, 1.6f);
+            positionOffset = new(0.2f, 2f, 1.6f);
             rotationOffset = new(0f, 0f, 180f);
             return;
         }
         
-
         positionOffset = Vector3.zero;
         rotationOffset = Vector3.zero;
     }
@@ -163,9 +162,9 @@ public class Item_Sync
         gameObject.transform.localRotation = rotationOffset;
         if (keyframesCallback != null)
         {
-            var componentInChildren = gameObject.GetComponentInChildren<FirstPersonAnimatorObject>();
-            if (componentInChildren != null)
-                componentInChildren.KeyframeCallback += keyframesCallback;
+            var animatorObject = gameObject.GetComponentInChildren<FirstPersonAnimatorObject>();
+            if (animatorObject != null)
+                animatorObject.KeyframeCallback += keyframesCallback;
         }
         __result = gameObject;
         return false;

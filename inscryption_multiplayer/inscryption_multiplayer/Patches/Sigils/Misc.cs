@@ -1,7 +1,5 @@
 ﻿using DiskCardGame;
 using HarmonyLib;
-using inscryption_multiplayer.Networking;
-using static inscryption_multiplayer.Utils;
 
 namespace inscryption_multiplayer.Patches
 {
@@ -18,11 +16,7 @@ namespace inscryption_multiplayer.Patches
         [HarmonyPrefix]
         public static bool DrawCreatedCardSync(AbilityBehaviour __instance)
         {
-            if (Plugin.MultiplayerActive && __instance.Card.OpponentCard)
-            {
-                return false;
-            }
-            return true;
+            return !Plugin.MultiplayerActive || !__instance.Card.OpponentCard;
         }
     }
 }
