@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -6,6 +7,7 @@ using DiskCardGame;
 using HarmonyLib;
 using inscryption_multiplayer;
 using inscryption_multiplayer.Networking;
+using Pixelplacement;
 using UnityEngine;
 
 public class MultiplayerItemData
@@ -32,7 +34,8 @@ public class Item_Sync
 
     [HarmonyPatch(typeof(TargetSlotItem), nameof(TargetSlotItem.ActivateSequence), MethodType.Enumerator)]
     [HarmonyTranspiler]
-    public static IEnumerable<CodeInstruction> SendTargetItem(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
+    public static IEnumerable<CodeInstruction> SendTargetItem(IEnumerable<CodeInstruction> instructions,
+        MethodBase __originalMethod)
     {
         var instanceField = AccessTools.Field(__originalMethod.ReflectedType, "<>4__this");
         var itemDataGetter = AccessTools.PropertyGetter(typeof(Item), nameof(Item.Data));
@@ -51,19 +54,28 @@ public class Item_Sync
 
     private static void SendItemData(CardSlot slot, ItemData itemData, bool targetItem)
     {
-		if(!Plugin.MultiplayerActive || (targetItem && slot == null))
-			return;
+        if (!Plugin.MultiplayerActive || (targetItem && slot == null))
+            return;
         InscryptionNetworking.Connection.SendJson(NetworkingMessage.ItemUsed, new MultiplayerItemData
         {
-			prefabId = itemData.prefabId,
-			pickupSoundId = itemData.pickupSoundId,
-			placedSoundId = itemData.placedSoundId,
-			examineSoundId = itemData.examineSoundId,
-			modelHeight = itemData.modelHeight,
+            prefabId = itemData.prefabId,
+            pickupSoundId = itemData.pickupSoundId,
+            placedSoundId = itemData.placedSoundId,
+            examineSoundId = itemData.examineSoundId,
+            modelHeight = itemData.modelHeight,
             TargetSlotIndex = slot?.Index
         });
     }
-    
+
+    [HarmonyPatch(typeof(ScreenColorEffect), nameof(ScreenColorEffect.SetColor))]
+    [HarmonyPatch(typeof(ScreenColorEffect), nameof(ScreenColorEffect.SetIntensity))]
+    [HarmonyPatch]
+    [HarmonyPrefix]
+    private static bool PreventScreenColor()
+    {
+        return !Plugin.MultiplayerActive || !MultiplayerRunState.Run.OpponentItemUsed;
+    }
+
     public static IEnumerator HandleOpponentItem(MultiplayerItemData _itemData)
     {
         MultiplayerRunState.Run.OpponentItemSlot ??= GameObject.Find("ItemSlot_4").GetComponent<SelectableItemSlot>();
@@ -79,9 +91,9 @@ public class Item_Sync
         yield return new WaitForSecondsRealtime(1f);
         var consumableItem = (ConsumableItem)itemSlot.Item;
         MultiplayerRunState.Run.OpponentItemUsed = true;
-        GetItemPositionOffset(consumableItem, out Vector3 positionOffset, out Vector3 rotationOffset);
         if (_itemData.TargetSlotIndex != null && consumableItem is TargetSlotItem targetItem)
         {
+            GetTargetItemOffset(consumableItem, out var positionOffset, out var rotationOffset);
             var targetSlot = Singleton<BoardManager>.Instance.playerSlots[(int)_itemData.TargetSlotIndex];
             targetItem.PlayExitAnimation();
             yield return new WaitForSeconds(0.1f);
@@ -100,7 +112,7 @@ public class Item_Sync
             Singleton<ViewManager>.Instance.Controller.LockState = ViewLockState.Locked;
             Singleton<InteractionCursor>.Instance.InteractionDisabled = true;
             yield return targetItem.OnValidTargetSelected(targetSlot, firstPersonItem.gameObject);
-            Object.Destroy(firstPersonItem.gameObject);
+            UnityEngine.Object.Destroy(firstPersonItem.gameObject);
             Singleton<UIManager>.Instance.Effects.GetEffect<EyelidMaskEffect>().SetIntensity(0f, 0.2f);
             Singleton<ViewManager>.Instance.Controller.LockState = ViewLockState.Unlocked;
         }
@@ -108,7 +120,7 @@ public class Item_Sync
         MultiplayerRunState.Run.OpponentItemUsed = false;
     }
 
-    private static void GetItemPositionOffset(ConsumableItem item, out Vector3 positionOffset, out Vector3 rotationOffset)
+    private static void GetTargetItemOffset(ConsumableItem item, out Vector3 positionOffset, out Vector3 rotationOffset)
     {
         if (item is TrapperKnifeItem)
         {
@@ -134,5 +146,59 @@ public class Item_Sync
 
         positionOffset = Vector3.zero;
         rotationOffset = Vector3.zero;
+    }
+
+    [HarmonyPatch(typeof(FirstPersonAnimationController), nameof(FirstPersonAnimationController.SpawnFirstPersonAnimation))]
+    [HarmonyPrefix]
+    private static bool PatchedAnimationSpawn(FirstPersonAnimationController __instance, string prefabName, Action<int> keyframesCallback, ref GameObject __result)
+    {
+        if (!Plugin.MultiplayerActive || !MultiplayerRunState.Run.OpponentItemUsed)
+            return true;
+        var gameObject = UnityEngine.Object.Instantiate(ResourceBank.Get<GameObject>("Prefabs/FirstPersonAnimations/" + prefabName));
+        gameObject.transform.SetParent(__instance.pixelCamera.transform);
+        GetAnimationItemOffset(prefabName, out var positionOffset, out var rotationOffset, out var endAnimation);
+        if (endAnimation)
+            __instance.StartCoroutine(ItemEndAnimation(gameObject));
+        gameObject.transform.localPosition = positionOffset;
+        gameObject.transform.localRotation = rotationOffset;
+        if (keyframesCallback != null)
+        {
+            var componentInChildren = gameObject.GetComponentInChildren<FirstPersonAnimatorObject>();
+            if (componentInChildren != null)
+                componentInChildren.KeyframeCallback += keyframesCallback;
+        }
+        __result = gameObject;
+        return false;
+    }
+
+    private static IEnumerator ItemEndAnimation(GameObject item)
+    {
+        var animator = item.GetComponentInChildren<Animator>();
+        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1);
+        Tween.Position(item.transform, item.transform.position + new Vector3(0f, 10f, 0f), 1f, 0f, Tween.EaseOut);
+    }
+    
+    private static void GetAnimationItemOffset(string prefabName, out Vector3 positionOffset,
+        out Quaternion rotationOffset, out bool endAnimation)
+    {
+        endAnimation = true;
+        switch (prefabName)
+        {
+            case "PliersAnimation":
+                positionOffset = new(-0.2f, 0.9845f, 5.544f);
+                rotationOffset = Quaternion.Euler(0f, 90f, 200f);
+                return;
+            case "BirdLegFanAnimation":
+                positionOffset = new(-1f, 1f, 0f);
+                rotationOffset = Quaternion.Euler(0f, 0f, 180f);
+                return;
+            case "FirstPersonBleachBrush":
+                positionOffset = new Vector3(0f, -2f, 0f);
+                rotationOffset = Quaternion.Euler(0f, 0f, 0f);
+                return;
+        }
+        positionOffset = Vector3.zero;
+        rotationOffset = Quaternion.identity;
+        endAnimation = false;
     }
 }

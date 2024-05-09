@@ -1,6 +1,5 @@
 using DiskCardGame;
 using Infiniscryption.PackManagement;
-using inscryption_multiplayer.Patches;
 using InscryptionAPI.Saves;
 using Newtonsoft.Json;
 using System;
@@ -108,7 +107,11 @@ namespace inscryption_multiplayer.Networking
             if (message.StartsWith("bypasscheck "))
             {
                 message = message.Substring(12);
-                if (PlayAgainstBot || SteamNetworking.START_ALONE)
+                if (PlayAgainstBot
+#if NETWORKING_STEAM
+                    || SteamNetworking.START_ALONE
+#endif
+                    )
                     selfMessage = false;
             }
             string jsonString = null;
